@@ -1,4 +1,34 @@
 <!doctype html>
+<html lang="en">
+<head>
 <meta charset="utf-8">
 <title>Workfront API Explorer</title>
-<p>Loading...</p>
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+<header>
+  <h1>Workfront API explorer</h1>
+  <div class="header-actions">
+    <button id="refresh" type="button" title="Refresh all cached data">Refresh</button>
+    <select id="version" aria-label="API version" disabled></select>
+  </div>
+</header>
+<div id="note" hidden></div>
+<main>
+  <section id="left" aria-label="Objects">
+    <input id="objSearch" type="search" placeholder="Search objects" aria-label="Search objects" autocomplete="off">
+    <div id="objList" role="listbox" aria-label="Objects"></div>
+  </section>
+  <section id="right" aria-label="Object details">
+    <div id="hint">Select an object</div>
+    <div id="detail" hidden>
+      <div id="detailHead"></div>
+      <div id="tabs" role="tablist"></div>
+      <input id="tabSearch" type="search" placeholder="Search tabbed section" aria-label="Search tabbed section" autocomplete="off">
+      <div id="items"></div>
+    </div>
+  </section>
+</main>
+<script type="module" src="popup.js"></script>
+</body>
+</html>

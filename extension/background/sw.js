@@ -47,3 +47,12 @@ chrome.runtime.onStartup.addListener(() => {
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === ALARM) hourly().catch(log('hourly'));
 });
+
+// Popup asks for a prefetch when the user switches version (popup may close first).
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg?.type !== 'prefetch') return;
+  (async () => {
+    const { entry } = await sync.checkList(HOST, msg.version);
+    await sync.prefetchAll(HOST, msg.version, Object.values(entry.data.objects).map((o) => o.objCode));
+  })().catch(log('prefetch'));
+});
