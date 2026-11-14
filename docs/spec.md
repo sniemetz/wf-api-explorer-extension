@@ -292,7 +292,8 @@ Notes:
 ### 6.5 Host setting
 
 - Default: `https://api-cl01.my.workfront.com`.
-- Fixed. No custom host option (decision 2026-11-14: metadata is the same on every host, so a setting has no value).
+- v1: fixed to `https://api-cl01.my.workfront.com`. No setting.
+- v2: see section 9.3 (cluster selector).
 - **Inference:** The default is reachable from all networks. Not verified for IBM networks.
 
 ### 6.6 Utilities
@@ -361,6 +362,15 @@ Notes:
   - Needs permissions `contextMenus` and a content script or `activeTab`.
   - Showing the list: open the popup (`chrome.action.openPopup`), a side panel, or an injected overlay. Decide in v2.
   - The list must come from cache so the menu check is fast.
+
+### 9.3 v2: cluster selector
+
+- Options page with a text field for the cluster, default `cl01`.
+- Host form is always `https://api-{cluster}.my.workfront.com`. No other host forms.
+- Free text, no validation (decision 2026-11-14: wrong input is the user's problem).
+- Metadata could differ per cluster. The cache key already includes the host, so each cluster has its own cache.
+- Deferred: behavior when a cluster is down. Address when this is built.
+- Needs `host_permissions` for `https://*.my.workfront.com/*`.
 
 ### 9.2 Send a request (authenticated)
 

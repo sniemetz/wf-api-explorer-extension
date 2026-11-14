@@ -46,7 +46,7 @@
 
 7. Deep link and omnibox: dropped from spec. (v2 context menu shows the lists in its submenus; it does not open the explorer.)
 
-Open: cluster setting (see conversation 2026-11-14): options page with a cluster field, default `cl01`. Not yet in plan.
+8. Cluster selector: v2 (spec 9.3). v1 hardcodes `cl01`. Cache key keeps the host (data could differ per cluster).
 
 ## File Structure
 
@@ -199,5 +199,5 @@ package.json  (scripts.test = "node --test test/")
 
 ## Self-review
 
-- Spec coverage: sections 6.0 to 6.7, 7, 7.1, 8, 10 map to Tasks 1 to 10. Backlog 9.1, 9.2 excluded (per hand-off). Custom host (6.5) removed (cluster setting pending). Deep link and omnibox dropped.
+- Spec coverage: sections 6.0 to 6.7, 7, 7.1, 8, 10 map to Tasks 1 to 10. Backlog 9.1, 9.2 excluded (per hand-off). Custom host (6.5) deferred to v2 (spec 9.3). Deep link and omnibox dropped.
 - Test split: pure lib logic under `node --test`; UI and chrome APIs verified manually by the user.
