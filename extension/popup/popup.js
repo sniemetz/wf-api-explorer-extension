@@ -284,10 +284,14 @@ async function renderRefresh(status) {
 dom.refresh.addEventListener('click', () => {
   setRefreshBusy(true);
   setNote('');
-  chrome.runtime.sendMessage({ type: 'refresh', version: state.ver }).catch(() => {
+  const notStarted = () => {
     setRefreshBusy(false);
-    setNote('Refresh failed: could not start. Cached data kept.');
-  });
+    setNote('Refresh did not start. Reload the extension on chrome://extensions and try again.');
+  };
+  // The worker acknowledges with { started: true }; an outdated worker does not answer.
+  chrome.runtime.sendMessage({ type: 'refresh', version: state.ver })
+    .then((resp) => { if (!resp?.started) notStarted(); })
+    .catch(notStarted);
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {

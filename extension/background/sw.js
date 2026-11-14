@@ -43,9 +43,10 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 // Popup asks for a prefetch when the user switches version (popup may close first).
-chrome.runtime.onMessage.addListener((msg) => {
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type === 'refresh') {
     refreshJob.start(msg.version).catch(log('refresh'));
+    sendResponse({ started: true });
     return;
   }
   if (msg?.type !== 'prefetch') return;
