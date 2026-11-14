@@ -38,21 +38,37 @@ export function renderObjectList(container, objects, selectedCode, onSelect) {
   container.replaceChildren();
   for (const o of objects) {
     container.append(
-      el('button', {
-        type: 'button', class: 'row', role: 'option',
+      // The label selects the object; the API name is a separate button that copies it.
+      el('div', {
+        class: 'row', role: 'option',
         'aria-selected': String(o.objCode === selectedCode),
         'data-code': o.objCode,
-        onClick: () => onSelect(o),
-      }, el('span', { text: o.label }), el('span', { class: 'code', text: o.objCode })),
+      }, el('button', { type: 'button', class: 'pick', text: o.label, onClick: () => onSelect(o) }),
+      copyName(o.objCode)),
     );
   }
 }
 
 const list = (v) => (Array.isArray(v) ? v.join(', ') : v == null ? '-' : String(v));
 
+// Muted API name; clicking copies it to the clipboard and briefly says so.
+export function copyName(text) {
+  const btn = el('button', { type: 'button', class: 'copy', title: 'Click to copy', text });
+  btn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      return;
+    }
+    btn.textContent = 'Copied';
+    setTimeout(() => { btn.textContent = text; }, 1000);
+  });
+  return btn;
+}
+
 export function renderDetailHead(container, obj, detail) {
   container.replaceChildren(
-    el('div', {}, el('strong', { text: detail?.label || obj.label }), ` (${obj.objCode})`),
+    el('div', { class: 'headline' }, el('strong', { text: detail?.label || obj.label }), copyName(obj.objCode)),
     ...(detail ? [
       el('div', { text: `Flags: ${list(detail.flags)}` }),
       el('div', { text: `Operations: ${list(detail.operations)}` }),
@@ -86,10 +102,12 @@ function valueNode(key, value, resolveCode, onLink) {
 export function renderItems(container, entries, { expanded, onToggle, resolveCode, onLink, visibleAttrs }) {
   container.replaceChildren(...entries.map(([name, attrs]) => {
     const open = expanded.has(name);
+    // The label toggles the item; the API name is a separate button that copies it.
     const item = el('div', { class: 'item' },
-      el('button', { type: 'button', 'aria-expanded': String(open), onClick: () => onToggle(name) },
-        el('strong', { class: 'pretty', text: attrs.label || name }),
-        el('span', { class: 'meta', text: attrs.label ? name : '' })),
+      el('div', { class: 'itemhead' },
+        el('button', { type: 'button', class: 'toggle', 'aria-expanded': String(open), onClick: () => onToggle(name) },
+          el('strong', { class: 'pretty', text: attrs.label || name })),
+        copyName(name)),
     );
     if (open) {
       const dl = el('dl', { class: 'attrs' });
