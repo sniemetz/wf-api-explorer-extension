@@ -175,7 +175,6 @@ Latest mockup: `mockup/mockup-v4-latest.png` (in the project folder).
 
 - v1: toolbar popup.
 - v2 (backlog): context menu on selected text (see section 9.1).
-- Optional: omnibox keyword, for example `wf PROJ`.
 
 ### 6.2 Object list
 
@@ -293,14 +292,12 @@ Notes:
 ### 6.5 Host setting
 
 - Default: `https://api-cl01.my.workfront.com`.
-- Option: custom host, for example a customer instance.
-- Metadata is the same on every host. The host choice does not change the result.
+- Fixed. No custom host option (decision 2026-11-14: metadata is the same on every host, so a setting has no value).
 - **Inference:** The default is reachable from all networks. Not verified for IBM networks.
 
 ### 6.6 Utilities
 
 - Copy item or object as JSON.
-- Deep link to an object, for example by hash `#PROJ`.
 - Keyboard: `/` focuses the search box.
 
 ## 7. Technical design
@@ -314,7 +311,7 @@ Notes:
 - Fetch from the service worker or the extension page. With `host_permissions`, CORS does not block the call.
   - **Inference:** Based on Chrome extension rules. Not tested in a browser yet.
 - Cache: `chrome.storage.local`, key = host + version + objCode. Keep list and detail separately. `PROJ` detail is about 64 KB.
-- Cache expiry: 24 hours, with a "Refresh" button. The list is also checked on every open (see section 6.2.1).
+- No cache expiry (decision 2026-11-14). The hourly refresh is the full check (list and all details, hash compare). A "Refresh" button forces the same run. The list is also checked on every open (see section 6.2.1).
 - Cache strategy (answer to the fetch-speed question):
   - Measured: list 0.5 s. One detail 0.8 s. All 174 details 1.16 MB in 8.2 s (10 parallel calls).
   - Decision: prefetch all details in the background after the first list load (see section 6.2.1). Fetch on demand when the cache is empty for the requested object.
@@ -425,7 +422,6 @@ Safety rules (if built):
 - Click a `typeObjCode` link: opens the linked object.
 - Version change reloads data.
 - Offline: shows cache, then an error if no cache.
-- Custom host: works with a customer instance.
 
 ## 11. Open questions
 
