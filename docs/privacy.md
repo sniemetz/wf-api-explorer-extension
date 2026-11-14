@@ -30,4 +30,4 @@ None. All code ships inside the extension package.
 If this policy changes, the new version will be published at this location with an updated effective date.
 
 ## Contact
-Sven Niemetz, sniemetz@gmail.com
+Sven Niemetz, sniemetz@gmail.com, or open an issue at https://github.com/sniemetz/wf-api-explorer-extension/issues

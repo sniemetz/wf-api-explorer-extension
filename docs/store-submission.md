@@ -12,7 +12,7 @@ Decided:
 
 Open:
 - **DECIDE** Clearance from Workfront for a public listing that names Workfront (to ask).
-- Add the GitHub issues URL to the contact line in `docs/privacy.md` once the repo is pushed.
+- Privacy policy URL for the store form: https://github.com/sniemetz/wf-api-explorer-extension/blob/master/docs/privacy.md
 
 ## Package checklist
 - Zip the contents of `extension/` with `manifest.json` at the zip root.
