@@ -1,8 +1,10 @@
+import { defaultVersion } from './versions.js';
+
 export const STATUS_KEY = 'refreshStatus';
 
 // Runs sync.refresh inside the service worker so it survives the popup closing.
 // Progress and result live in storage so any popup instance can show them.
-export function createRefreshJob({ sync, storage, host, now = Date.now }) {
+export function createRefreshJob({ sync, storage, host, refreshVersions, now = Date.now }) {
   let inFlight = null;
 
   const read = async () => (await storage.get(STATUS_KEY))[STATUS_KEY];
@@ -23,6 +25,9 @@ export function createRefreshJob({ sync, storage, host, now = Date.now }) {
       await write({ state: 'running', version, startedAt: now() });
       let status;
       try {
+        // Refresh also re-reads the explorer's version list; the chosen version may have left it.
+        const options = refreshVersions ? await refreshVersions() : null;
+        if (options && !options.some((o) => o.value === version)) version = defaultVersion(options).value;
         const result = await sync.refresh(host, version);
         status = { state: 'done', version, result, finishedAt: now(), seen: false };
       } catch (err) {

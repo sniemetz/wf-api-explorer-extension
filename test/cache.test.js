@@ -43,10 +43,25 @@ test('detail round trip, versions do not collide', async () => {
   assert.equal(await c.getDetail(H, '/v22.0', 'TASK'), undefined);
 });
 
-test('needsLogin entry round trips', async () => {
-  const c = createCache(fakeStorage());
-  await c.setDetail(H, '/v22.0', 'ACTLOG', { needsLogin: true });
-  assert.deepEqual(await c.getDetail(H, '/v22.0', 'ACTLOG'), { needsLogin: true });
+test('evictExcept drops list/detail entries of versions not offered, keeps the rest', async () => {
+  const storage = fakeStorage();
+  storage.remove = async (keys) => { for (const k of keys) delete storage.store[k]; };
+  storage.get = async (k) => (k === null ? { ...storage.store } : (k in storage.store ? { [k]: storage.store[k] } : {}));
+  const c = createCache(storage);
+  await c.setList(H, '/v21.0', { n: 1 });
+  await c.setDetail(H, '/v21.0', 'TASK', { n: 1 });
+  await c.setList(H, '/v22.0', { n: 2 });
+  await c.setDetail(H, '/v22.0', 'TASK', { n: 2 });
+  await c.setDetail('https://other', '/v21.0', 'TASK', { n: 3 });
+  await c.setVersions(H, { data: [] });
+  await c.setLastRun(5);
+  assert.equal(await c.evictExcept(H, ['/v22.0']), 2);
+  assert.equal(await c.getList(H, '/v21.0'), undefined);
+  assert.equal(await c.getDetail(H, '/v21.0', 'TASK'), undefined);
+  assert.ok(await c.getList(H, '/v22.0'));
+  assert.ok(await c.getDetail('https://other', '/v21.0', 'TASK'));
+  assert.ok(await c.getVersions(H));
+  assert.equal(await c.getLastRun(), 5);
 });
 
 test('versions and lastRun round trip', async () => {

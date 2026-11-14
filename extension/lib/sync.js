@@ -4,6 +4,9 @@ import { isValidObjCode } from './versions.js';
 
 const HOUR_MS = 3600000;
 
+// A 4xx answer means the object has no metadata for us. It is not a refresh failure.
+export const isNoData = (err) => err instanceof ApiError && err.status >= 400 && err.status < 500;
+
 export function createSync({ api, cache, now = Date.now }) {
   const queue = [];
   let running = 0;
@@ -42,18 +45,7 @@ export function createSync({ api, cache, now = Date.now }) {
 
   async function checkDetail(host, ver, code) {
     const prev = await cache.getDetail(host, ver, code);
-    let res;
-    try {
-      res = await api.fetchDetail(host, ver, code);
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        if (prev && prev.needsLogin) return { changed: false, entry: prev };
-        const entry = { needsLogin: true };
-        await cache.setDetail(host, ver, code, entry);
-        return { changed: true, entry };
-      }
-      throw err;
-    }
+    const res = await api.fetchDetail(host, ver, code);
     const hash = await sha256(stableStringify(res.data));
     if (prev && prev.hash === hash) return { changed: false, entry: prev };
     const entry = { hash, data: res.data, fetchedAt: now() };
@@ -78,9 +70,12 @@ export function createSync({ api, cache, now = Date.now }) {
     const results = await Promise.all(
       codes.map((code) =>
         enqueue(code, async () => {
-          const prev = await cache.getDetail(host, ver, code);
-          if (prev && prev.needsLogin) return false;
-          return (await checkDetail(host, ver, code)).changed;
+          try {
+            return (await checkDetail(host, ver, code)).changed;
+          } catch (err) {
+            if (isNoData(err)) return false; // e.g. 401: the object has no public metadata
+            throw err;
+          }
         }),
       ),
     );

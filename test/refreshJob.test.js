@@ -56,6 +56,17 @@ test('a leftover running status from a dead worker becomes failed (interrupted)'
   assert.equal(storage.store[STATUS_KEY].error, 'interrupted');
 });
 
+test('refreshVersions runs first; a dropped version falls back to the explorer default', async () => {
+  const order = [];
+  const sync = { refresh: async (h, v) => { order.push(`refresh ${v}`); return { changed: 0, failed: 0, total: 1 }; } };
+  const refreshVersions = async () => { order.push('versions'); return [{ value: '/v21.0', label: 'x' }, { value: '/v22.0', label: 'y' }]; };
+  const storage = fakeStorage();
+  const job = createRefreshJob({ sync, storage, host: H, refreshVersions });
+  await job.start('/v15.0');
+  assert.deepEqual(order, ['versions', 'refresh /v22.0']);
+  assert.equal(storage.store[STATUS_KEY].version, '/v22.0');
+});
+
 test('describeStatus texts', () => {
   assert.deepEqual(describeStatus(undefined), { busy: false, text: '' });
   assert.deepEqual(describeStatus({ state: 'running' }), { busy: true, text: '' });

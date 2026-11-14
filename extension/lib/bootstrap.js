@@ -1,4 +1,4 @@
-import { FALLBACK_VERSIONS, parseVersionOptions, probeVersions, highestVersion, metadataUrl } from './versions.js';
+import { FALLBACK_VERSIONS, parseVersionOptions, probeVersions, highestVersion, metadataUrl, statusOf, cachedVersions } from './versions.js';
 import { sha256 } from './hash.js';
 
 const UNSUPPORTED = '-unsupported';
@@ -17,7 +17,7 @@ async function fetchExplorerOptions(explorerUrl, fetchFn) {
 async function validate(options, host, fetchFn) {
   const ok = await Promise.all(options.map(async (o) => {
     try {
-      return (await fetchFn(metadataUrl(host, o.value))).status === 200;
+      return (await statusOf(fetchFn, metadataUrl(host, o.value))) === 200;
     } catch {
       return true;
     }
@@ -43,5 +43,7 @@ export async function loadVersions({ host, explorerUrl, fetchFn, cache, now = Da
 
   const hash = await sha256(JSON.stringify(options));
   if (cached?.hash !== hash) await cache.setVersions(host, { hash, data: options, fetchedAt: now() });
+  // Drop cached data of versions the dropdown no longer offers, and anything beyond the newest few.
+  await cache.evictExcept(host, cachedVersions(options));
   return options;
 }

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { TABS, tabEntries, visibleAttrs } from '../extension/lib/detail.js';
+import { TABS, tabEntries, visibleAttrs, searchPlaceholder } from '../extension/lib/detail.js';
 
 test('TABS has the 5 Explorer tabs in order (Queries hidden)', () => {
   assert.deepEqual(TABS.map((t) => t.key), ['fields', 'references', 'collections', 'search', 'actions']);
@@ -23,4 +23,10 @@ test('visibleAttrs hides null, undefined and empty arrays but keeps false and 0'
 
 test('visibleAttrs hides url (duplicates the object link)', () => {
   assert.deepEqual(visibleAttrs({ typeObjCode: 'CUST', url: 'https://h/attask/api/v22.0/cust/metadata' }), [['typeObjCode', 'CUST']]);
+});
+
+test('searchPlaceholder names the selected tab', () => {
+  assert.equal(searchPlaceholder('fields'), 'Search fields');
+  assert.equal(searchPlaceholder('actions'), 'Search actions');
+  assert.equal(searchPlaceholder('bogus'), 'Search items');
 });

@@ -1,15 +1,16 @@
 import { HOST, EXPLORER_URL } from '../lib/config.js';
+import { fetchWithTimeout } from '../lib/http.js';
 import { createCache } from '../lib/cache.js';
 import { createApi, ApiError } from '../lib/api.js';
 import { createSync } from '../lib/sync.js';
 import { loadVersions } from '../lib/bootstrap.js';
-import { highestVersion } from '../lib/versions.js';
+import { defaultVersion } from '../lib/versions.js';
 import { filterObjects, filterItems } from '../lib/filter.js';
-import { TABS, tabEntries, visibleAttrs } from '../lib/detail.js';
+import { TABS, tabEntries, visibleAttrs, searchPlaceholder } from '../lib/detail.js';
 import { STATUS_KEY, describeStatus } from '../lib/refreshJob.js';
 import { renderObjectList, showMessage, debounce, renderDetailHead, renderTabs, renderItems } from './render.js';
 
-const fetchFn = (url) => fetch(url);
+const fetchFn = fetchWithTimeout();
 const cache = createCache(chrome.storage.local);
 const sync = createSync({ api: createApi(fetchFn), cache });
 
@@ -89,6 +90,7 @@ function renderItemsView() {
 }
 
 function renderTabsView() {
+  dom.tabSearch.placeholder = dom.tabSearch.ariaLabel = searchPlaceholder(state.tab);
   const counts = Object.fromEntries(TABS.map((t) => [t.key, tabEntries(state.detail, t.key).length]));
   renderTabs(dom.tabs, TABS, counts, state.tab, (key) => {
     state.tab = key;
@@ -101,13 +103,6 @@ function renderTabsView() {
 }
 
 function showDetail(obj, entry) {
-  if (entry.needsLogin) {
-    state.detail = null;
-    renderDetailHead(dom.detailHead, obj, null);
-    dom.tabs.replaceChildren();
-    showMessage(dom.items, 'empty', { text: 'No data available' });
-    return;
-  }
   state.detail = entry.data;
   renderDetailHead(dom.detailHead, obj, entry.data);
   renderTabsView();
@@ -146,11 +141,9 @@ async function selectObject(obj, { tab = 'fields', tabSearch = '', expanded = []
   if (cached) {
     showDetail(obj, cached);
     dom.items.scrollTop = itemsScroll;
-    if (!cached.needsLogin) {
-      sync.checkDetail(HOST, ver, obj.objCode)
-        .then((r) => { if (current() && r.changed) showDetail(obj, r.entry); })
-        .catch(() => {});
-    }
+    sync.checkDetail(HOST, ver, obj.objCode)
+      .then((r) => { if (current() && r.changed) showDetail(obj, r.entry); })
+      .catch(() => {});
     return;
   }
   renderDetailHead(dom.detailHead, obj, null);
@@ -159,12 +152,9 @@ async function selectObject(obj, { tab = 'fields', tabSearch = '', expanded = []
   try {
     const r = await sync.checkDetail(HOST, ver, obj.objCode);
     if (current()) { showDetail(obj, r.entry); dom.items.scrollTop = itemsScroll; }
-  } catch (err) {
-    if (current()) {
-      showMessage(dom.items, 'error', {
-        status: err instanceof ApiError ? err.status : null, url: err.url, onRetry: () => selectObject(obj),
-      });
-    }
+  } catch {
+    // Anything but a 200 with valid JSON: the web explorer shows nothing either.
+    if (current()) showMessage(dom.items, 'empty', { text: 'No data available' });
   }
 }
 
@@ -220,7 +210,7 @@ async function init() {
     ? cachedVersions.data
     : await loadVersions({ host: HOST, explorerUrl: EXPLORER_URL, fetchFn, cache });
   const { selectedVersion } = await chrome.storage.local.get('selectedVersion');
-  state.ver = options.some((o) => o.value === selectedVersion) ? selectedVersion : highestVersion(options).value;
+  state.ver = options.some((o) => o.value === selectedVersion) ? selectedVersion : defaultVersion(options).value;
   fillVersions(options, state.ver);
   const { view } = await chrome.storage.local.get('view');
   const sameVersion = view?.ver === state.ver;
@@ -274,12 +264,28 @@ async function reloadFromCache(ver) {
   }
 }
 
+// A refresh re-reads the explorer's version list. Follow it if our version was dropped.
+async function syncVersionList() {
+  const options = (await cache.getVersions(HOST))?.data;
+  if (!options?.length) return;
+  const keep = options.some((o) => o.value === state.ver);
+  fillVersions(options, keep ? state.ver : defaultVersion(options).value);
+  if (keep) return;
+  state.ver = dom.version.value;
+  await chrome.storage.local.set({ selectedVersion: state.ver });
+  clearSelection();
+  dom.objSearch.value = '';
+  dom.tabSearch.value = '';
+  await loadList(state.ver);
+}
+
 // The refresh runs in the service worker; its status lives in storage (see lib/refreshJob.js).
 async function renderRefresh(status) {
   const { busy, text } = describeStatus(status);
   setRefreshBusy(busy);
   if (busy || !status || status.seen) return;
   await chrome.storage.local.set({ [STATUS_KEY]: { ...status, seen: true } });
+  if (status.state === 'done') await syncVersionList();
   if (status.version !== state.ver) return;
   if (status.state === 'done') await reloadFromCache(status.version);
   setNote(text);

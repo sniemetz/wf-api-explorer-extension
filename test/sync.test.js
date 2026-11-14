@@ -76,13 +76,10 @@ test('checkList changed hash writes the new entry', async () => {
   assert.ok((await s.cache.getList(H, V)).data.objects.b);
 });
 
-test('checkDetail 401 stores needsLogin once', async () => {
+test('checkDetail 401 throws and caches nothing', async () => {
   const { sync, cache } = setup();
-  const first = await sync.checkDetail(H, V, 'ACTLOG');
-  assert.equal(first.changed, true);
-  assert.deepEqual(await cache.getDetail(H, V, 'ACTLOG'), { needsLogin: true });
-  const second = await sync.checkDetail(H, V, 'ACTLOG');
-  assert.equal(second.changed, false);
+  await assert.rejects(sync.checkDetail(H, V, 'ACTLOG'), (e) => e.status === 401);
+  assert.equal(await cache.getDetail(H, V, 'ACTLOG'), undefined);
 });
 
 test('prefetchAll never exceeds concurrency 5', async () => {
@@ -94,13 +91,13 @@ test('prefetchAll never exceeds concurrency 5', async () => {
   assert.ok(s.maxRunning() > 1);
 });
 
-test('prefetchAll skips cached codes and needsLogin codes', async () => {
+test('prefetchAll skips cached codes and retries objects that answered 401', async () => {
   const s = setup({ codes: ['A', 'B', 'ACTLOG'] });
   await s.sync.prefetchAll(H, V, ['A', 'B', 'ACTLOG']);
   assert.deepEqual([...s.calls].sort(), ['A', 'ACTLOG', 'B']);
   s.calls.length = 0;
   await s.sync.prefetchAll(H, V, ['A', 'B', 'ACTLOG']);
-  assert.deepEqual(s.calls, []);
+  assert.deepEqual(s.calls, ['ACTLOG']);
 });
 
 test('prefetchAll continues after a failed object', async () => {
@@ -173,10 +170,10 @@ test('refresh counts one changed detail', async () => {
   assert.deepEqual(await s.sync.refresh(H, V), { changed: 1, failed: 0, total: 2 });
 });
 
-test('refresh counts failures and skips needsLogin objects', async () => {
+test('refresh counts 5xx as failures but a 401 (no metadata) is not a failure', async () => {
   const s = setup({ codes: ['A', 'B', 'ACTLOG'], failCodes: ['A'] });
   const r1 = await s.sync.refresh(H, V);
-  assert.equal(r1.failed, 1);
+  assert.deepEqual(r1, { changed: 2, failed: 1, total: 3 });
   const r2 = await s.sync.refresh(H, V);
   assert.deepEqual(r2, { changed: 0, failed: 1, total: 3 });
 });

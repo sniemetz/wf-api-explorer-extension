@@ -6,6 +6,8 @@ export const TABS = [
   { key: 'actions', label: 'Actions' },
 ];
 
+export const searchPlaceholder = (key) => `Search ${(TABS.find((t) => t.key === key)?.label ?? 'items').toLowerCase()}`;
+
 export const tabEntries = (detail, key) => Object.entries(detail?.[key] ?? {});
 
 export const visibleAttrs = (attrs) => Object.entries(attrs ?? {}).filter(([k, v]) => k !== 'label' && k !== 'url' && v != null && !(Array.isArray(v) && v.length === 0));

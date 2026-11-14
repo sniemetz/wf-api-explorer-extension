@@ -4,8 +4,8 @@ import { readFileSync } from 'node:fs';
 
 const m = JSON.parse(readFileSync(new URL('../extension/manifest.json', import.meta.url), 'utf8'));
 
-test('manifest has unlimitedStorage for the multi-version cache', () => {
-  assert.deepEqual([...m.permissions].sort(), ['alarms', 'storage', 'unlimitedStorage']);
+test('permissions stay minimal (cache is capped to fit the default storage quota)', () => {
+  assert.deepEqual([...m.permissions].sort(), ['alarms', 'storage']);
 });
 
 test('host_permissions stay narrow (v1)', () => {

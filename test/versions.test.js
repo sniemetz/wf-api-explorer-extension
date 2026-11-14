@@ -6,6 +6,9 @@ import {
   highestVersion,
   probeVersions,
   metadataUrl,
+  defaultVersion,
+  statusOf,
+  cachedVersions,
 } from '../extension/lib/versions.js';
 
 const HTML = `
@@ -51,7 +54,7 @@ test('probeVersions adds v23.0 and stops at v24.0 (400)', async () => {
     return { status: url.includes('/v23.0/') ? 200 : 400 };
   };
   const hits = await probeVersions(FALLBACK_VERSIONS, fetchFn, 'https://h');
-  assert.deepEqual(hits, [{ value: '/v23.0', label: 'API Version 23.0' }]);
+  assert.deepEqual(hits, [{ value: '/v23.0', label: 'API Version 23.0', probed: true }]);
   assert.deepEqual(calls, [
     'https://h/attask/api/v23.0/metadata',
     'https://h/attask/api/v24.0/metadata',
@@ -89,4 +92,28 @@ test('probeVersions stops after 10 probes even if every answer is 200', async ()
   const hits = await probeVersions(FALLBACK_VERSIONS, async () => { n++; return { status: 200 }; }, 'https://h');
   assert.equal(n, 10);
   assert.equal(hits.length, 10);
+});
+
+test('defaultVersion is the highest version the explorer lists, never a probed one', () => {
+  const opts = [...FALLBACK_VERSIONS, { value: '/v23.0', label: 'API Version 23.0', probed: true }];
+  assert.equal(defaultVersion(opts).value, '/v22.0');
+  assert.equal(defaultVersion([{ value: '/v23.0', label: 'x', probed: true }]).value, '/v23.0');
+});
+
+test('statusOf reads the status and cancels the body', async () => {
+  let cancelled = false;
+  const fetchFn = async () => ({ status: 200, body: { cancel: async () => { cancelled = true; } } });
+  assert.equal(await statusOf(fetchFn, 'u'), 200);
+  assert.equal(cancelled, true);
+});
+
+test('cachedVersions keeps unsupported plus the newest numeric versions, 10 in total', () => {
+  const opts = [...Array.from({ length: 12 }, (_, i) => ({ value: `/v${i + 15}.0`, label: 'x' })), { value: '-unsupported', label: 'u' }];
+  const keep = cachedVersions(opts, 10);
+  assert.equal(keep.length, 10);
+  assert.equal(keep[0], '/v26.0');
+  assert.equal(keep.filter((v) => v !== '-unsupported').length, 9);
+  assert.ok(keep.includes('-unsupported'));
+  assert.equal(cachedVersions(opts.slice(0, 12), 10).length, 10); // no unsupported offered: 10 numeric
+  assert.deepEqual(cachedVersions(opts.slice(8), 10), ['/v26.0', '/v25.0', '/v24.0', '/v23.0', '-unsupported']);
 });

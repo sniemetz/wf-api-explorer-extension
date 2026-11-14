@@ -1,4 +1,4 @@
-import { highestVersion } from './versions.js';
+import { defaultVersion } from './versions.js';
 
 export const ALARM = 'refresh';
 
@@ -9,13 +9,20 @@ export async function prefetchFromCache({ host, version, cache, sync }) {
   await sync.prefetchAll(host, version, Object.values(entry.data.objects).map((o) => o.objCode));
 }
 
+// Check the list (one request) and fetch details we do not have yet. Cached details are left alone.
+export async function checkListAndPrefetch({ host, version, sync }) {
+  const { entry } = await sync.checkList(host, version);
+  await sync.prefetchAll(host, version, Object.values(entry.data.objects).map((o) => o.objCode));
+}
+
 // Extension load (install, browser start): spec 6.2.1.
 export async function populate({ host, getVersions, storage, sync, alarms }) {
   // Create the alarm first so a failed network step cannot leave the extension without an hourly refresh.
   await alarms.create(ALARM, { periodInMinutes: 60 });
-  const latest = highestVersion(await getVersions()).value;
-  await storage.set({ selectedVersion: latest });
-  const { entry } = await sync.checkList(host, latest);
-  const codes = Object.values(entry.data.objects).map((o) => o.objCode);
-  await sync.prefetchAll(host, latest, codes);
+  const options = await getVersions();
+  const { selectedVersion } = await storage.get('selectedVersion');
+  // Keep the user's choice while the dropdown still offers it; otherwise use the explorer's highest version.
+  const ver = options.some((o) => o.value === selectedVersion) ? selectedVersion : defaultVersion(options).value;
+  if (ver !== selectedVersion) await storage.set({ selectedVersion: ver });
+  await checkListAndPrefetch({ host, version: ver, sync });
 }
