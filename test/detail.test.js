@@ -27,3 +27,12 @@ test('visibleAttrs hides null and undefined values but keeps false, 0 and empty 
   const attrs = { label: 'L', enumType: null, url: undefined, fieldType: 'string', flags: [], n: 0, b: false };
   assert.deepEqual(visibleAttrs(attrs), [['fieldType', 'string'], ['flags', []], ['n', 0], ['b', false]]);
 });
+
+test('objCodeFromUrl extracts the object code from a metadata url', async () => {
+  const { objCodeFromUrl } = await import('../extension/lib/detail.js');
+  assert.equal(objCodeFromUrl('https://api-cl01.my.workfront.com/attask/api/v22.0/score/metadata'), 'score');
+  assert.equal(objCodeFromUrl('https://h/attask/api-unsupported/PROJ/metadata'), 'PROJ');
+  assert.equal(objCodeFromUrl('https://h/attask/api/v22.0/metadata'), null);
+  assert.equal(objCodeFromUrl('nonsense'), null);
+  assert.equal(objCodeFromUrl(null), null);
+});

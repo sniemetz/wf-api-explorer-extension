@@ -83,9 +83,11 @@ export function renderTabs(container, tabs, counts, active, onTab) {
   }, `${t.label}${counts ? ` (${counts[t.key]})` : ''}`)));
 }
 
-function valueNode(key, value, knownCodes, onLink) {
-  if ((key === 'typeObjCode' || key === 'targetTypeObjCode') && knownCodes.has(value)) {
-    return el('button', { type: 'button', class: 'objlink', text: value, onClick: () => onLink(value) });
+function valueNode(key, value, resolveCode, onLink, objCodeFromUrl) {
+  const linkCode = key === 'url' ? resolveCode(objCodeFromUrl(value))
+    : (key === 'typeObjCode' || key === 'targetTypeObjCode') ? resolveCode(value) : undefined;
+  if (linkCode) {
+    return el('button', { type: 'button', class: 'objlink', text: linkCode, onClick: () => onLink(linkCode) });
   }
   if (key === 'possibleValues' && Array.isArray(value)) {
     return document.createTextNode(value.map((p) => `${p.label} (${p.value})`).join(', ') || '-');
@@ -98,7 +100,7 @@ function valueNode(key, value, knownCodes, onLink) {
   return document.createTextNode(String(value));
 }
 
-export function renderItems(container, entries, { expanded, onToggle, knownCodes, onLink, visibleAttrs, itemMeta }) {
+export function renderItems(container, entries, { expanded, onToggle, resolveCode, onLink, visibleAttrs, itemMeta, objCodeFromUrl }) {
   container.replaceChildren(...entries.map(([name, attrs]) => {
     const open = expanded.has(name);
     const item = el('div', { class: 'item' },
@@ -108,7 +110,7 @@ export function renderItems(container, entries, { expanded, onToggle, knownCodes
     );
     if (open) {
       const dl = el('dl', { class: 'attrs' });
-      for (const [k, v] of visibleAttrs(attrs)) dl.append(el('dt', { text: `${k}:` }), el('dd', {}, valueNode(k, v, knownCodes, onLink)));
+      for (const [k, v] of visibleAttrs(attrs)) dl.append(el('dt', { text: `${k}:` }), el('dd', {}, valueNode(k, v, resolveCode, onLink, objCodeFromUrl)));
       item.append(dl, copyButton('Copy JSON', () => JSON.stringify({ [name]: attrs }, null, 2)));
     }
     return item;

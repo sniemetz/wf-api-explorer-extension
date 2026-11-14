@@ -5,7 +5,7 @@ import { createSync } from '../lib/sync.js';
 import { loadVersions } from '../lib/bootstrap.js';
 import { highestVersion } from '../lib/versions.js';
 import { filterObjects, filterItems } from '../lib/filter.js';
-import { TABS, tabEntries, visibleAttrs, itemMeta } from '../lib/detail.js';
+import { TABS, tabEntries, visibleAttrs, itemMeta, objCodeFromUrl } from '../lib/detail.js';
 import { renderObjectList, showMessage, debounce, renderDetailHead, renderTabs, renderItems } from './render.js';
 
 const fetchFn = (url) => fetch(url);
@@ -33,12 +33,17 @@ function objectsFrom(entry) {
   return Object.values(entry.data.objects).sort((a, b) => a.label.localeCompare(b.label));
 }
 
+function saveView() {
+  chrome.storage.local.set({ view: { ver: state.ver, objCode: state.selected?.objCode ?? null, tab: state.tab } }).catch(() => {});
+}
+
 function clearSelection() {
   state.selected = null;
   state.detail = null;
   state.detailToken++;
   dom.detail.hidden = true;
   dom.hint.hidden = false;
+  saveView();
 }
 
 function renderList() {
@@ -68,13 +73,14 @@ function renderItemsView() {
       if (!state.expanded.delete(name)) state.expanded.add(name);
       renderItemsView();
     },
-    knownCodes: new Set(state.objects.map((o) => o.objCode)),
+    resolveCode: (code) => (code ? state.objects.find((o) => o.objCode.toLowerCase() === code.toLowerCase())?.objCode : undefined),
     onLink: (code) => {
       const target = state.objects.find((o) => o.objCode === code);
       if (target) selectObject(target);
     },
     visibleAttrs,
     itemMeta,
+    objCodeFromUrl,
   });
 }
 
@@ -83,6 +89,7 @@ function renderTabsView() {
   renderTabs(dom.tabs, TABS, counts, state.tab, (key) => {
     state.tab = key;
     state.expanded.clear();
+    saveView();
     renderTabsView();
     renderItemsView();
   });
@@ -102,14 +109,15 @@ function showDetail(obj, entry) {
   renderItemsView();
 }
 
-async function selectObject(obj) {
+async function selectObject(obj, { tab = 'fields' } = {}) {
   const ver = state.ver;
   const token = ++state.detailToken;
   const current = () => token === state.detailToken && ver === state.ver;
   state.selected = obj;
   state.detail = null;
-  state.tab = 'fields';
+  state.tab = tab;
   state.expanded.clear();
+  saveView();
   dom.tabSearch.value = '';
   dom.hint.hidden = true;
   dom.detail.hidden = false;
@@ -192,6 +200,9 @@ async function init() {
   state.ver = options.some((o) => o.value === selectedVersion) ? selectedVersion : highestVersion(options).value;
   fillVersions(options, state.ver);
   await loadList(state.ver);
+  const { view } = await chrome.storage.local.get('view');
+  const restore = view?.ver === state.ver && state.objects.find((o) => o.objCode === view.objCode);
+  if (restore) selectObject(restore, { tab: TABS.some((t) => t.key === view.tab) ? view.tab : 'fields' });
 }
 
 dom.version.addEventListener('change', async () => {

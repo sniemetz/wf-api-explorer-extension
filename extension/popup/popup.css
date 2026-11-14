@@ -22,7 +22,7 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--fg); }
-body { width: 600px; height: 445px; font: 13px/1.35 system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden; }
+body { width: 742px; height: 445px; font: 13px/1.35 system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden; }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 header { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px 4px; }
 h1 { font-size: 16px; margin: 0; }
@@ -31,7 +31,7 @@ select, input, button { font: inherit; color: inherit; background: var(--bg); bo
 button { cursor: pointer; }
 button:hover:not(:disabled) { background: var(--hover); }
 #note { padding: 2px 12px; font-size: 12px; color: var(--muted); }
-main { flex: 1; min-height: 0; display: grid; grid-template-columns: 210px 1fr; gap: 8px; padding: 4px 12px 10px; }
+main { flex: 1; min-height: 0; display: grid; grid-template-columns: 210px 500px; gap: 8px; padding: 4px 12px 10px; }
 section { min-height: 0; display: flex; flex-direction: column; gap: 4px; }
 #left input, #tabSearch { width: 100%; }
 #objList, #items { flex: 1; min-height: 0; overflow-y: auto; border: 1px solid var(--line); border-radius: 4px; }
@@ -56,7 +56,7 @@ section { min-height: 0; display: flex; flex-direction: column; gap: 4px; }
 .item .attrs { padding: 2px 8px 6px 16px; font-size: 12px; }
 .item .attrs dt { color: var(--muted); float: left; clear: left; margin-right: 6px; }
 .item .attrs dd { margin: 0 0 1px; overflow-wrap: anywhere; }
-a.objlink { color: var(--accent); cursor: pointer; text-decoration: underline; background: none; border: 0; padding: 0; }
+button.objlink { color: var(--accent); cursor: pointer; text-decoration: underline; background: none; border: 0; padding: 0; }
 .err button { margin-top: 6px; }
 button.copy { font-size: 11px; padding: 1px 6px; margin: 0 0 6px 16px; }
 #detailHead button.copy { margin: 2px 0 0; }

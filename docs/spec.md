@@ -159,7 +159,7 @@ No `flags` and no `resultType`.
 
 Latest mockup: `mockup/mockup-v4-latest.png` (in the project folder).
 
-- Entry point: toolbar popup. Size about 600 px x 445 px.
+- Entry point: toolbar popup. Size about 742 px x 445 px (right panel 500 px wide; changed from 600 px on 2026-11-14).
 - Title: "Workfront API explorer" (top left).
 - Version dropdown: top right (see section 6.4).
 - Left panel: object search box ("Search objects") above a scrollable list of objects.
@@ -300,6 +300,8 @@ Notes:
 
 - Copy item or object as JSON.
 - Keyboard: `/` focuses the search box.
+- Keep state: the last selected object and tab are restored when the popup opens (same version only).
+- In an expanded item, the `url` attribute is a link that opens the linked object in the explorer. Null attributes are hidden.
 
 ## 7. Technical design
 
@@ -341,7 +343,7 @@ Notes:
 
 - Open the list in under 1 second from cache.
 - The change check runs async. It must not block the first render.
-- Popup size: about 600 px x 445 px.
+- Popup size: about 742 px x 445 px.
 - No data leaves the browser except the calls to Workfront hosts.
 - No API key and no password stored in v1.
 - Accessible: keyboard navigation and visible focus.

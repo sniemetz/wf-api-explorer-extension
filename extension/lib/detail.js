@@ -16,3 +16,8 @@ export function itemMeta(attrs) {
   const flags = Array.isArray(attrs.flags) ? attrs.flags.join(', ') : '';
   return [type, flags].filter(Boolean).join(' · ');
 }
+
+export function objCodeFromUrl(url) {
+  const m = /\/attask\/api(?:\/v\d+\.\d+|-unsupported)\/([A-Za-z0-9_]+)\/metadata$/.exec(typeof url === 'string' ? url : '');
+  return m ? m[1] : null;
+}
