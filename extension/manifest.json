@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Workfront API Explorer",
+  "version": "0.1.0",
+  "description": "Browse Workfront API object metadata (fields, references, collections, search, actions, queries).",
+  "permissions": ["storage", "alarms"],
+  "host_permissions": [
+    "https://api-cl01.my.workfront.com/*",
+    "https://developersupport.workfront.com/*"
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": { "16": "icons/icon16.png", "32": "icons/icon32.png" }
+  },
+  "background": { "service_worker": "background/sw.js", "type": "module" },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
