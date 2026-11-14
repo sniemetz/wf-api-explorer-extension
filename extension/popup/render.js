@@ -76,7 +76,7 @@ function valueNode(key, value, resolveCode, onLink) {
     return document.createTextNode(value.map((p) => `${p.label} (${p.value})`).join(', ') || '-');
   }
   if (key === 'arguments' && Array.isArray(value)) {
-    return document.createTextNode(value.map((a) => `${a.name}: ${a.type}`).join(', ') || '-');
+    return el('div', {}, ...value.map((a) => el('div', { text: `${a.name} (${a.type})` })));
   }
   if (Array.isArray(value) && value.every((v) => typeof v !== 'object')) return document.createTextNode(list(value));
   if (value !== null && typeof value === 'object') return document.createTextNode(JSON.stringify(value));

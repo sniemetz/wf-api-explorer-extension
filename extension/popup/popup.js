@@ -91,6 +91,7 @@ function renderTabsView() {
     saveView();
     renderTabsView();
     renderItemsView();
+    dom.items.scrollTop = 0;
   });
 }
 
@@ -127,6 +128,8 @@ async function selectObject(obj, { tab = 'fields' } = {}) {
   state.expanded.clear();
   saveView();
   dom.tabSearch.value = '';
+  dom.items.replaceChildren();
+  dom.items.scrollTop = 0;
   dom.hint.hidden = true;
   dom.detail.hidden = false;
   renderList();

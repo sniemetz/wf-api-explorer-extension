@@ -53,8 +53,8 @@ section { min-height: 0; display: flex; flex-direction: column; gap: 4px; }
 .item { border-bottom: 1px solid var(--line); }
 .item > button { display: flex; justify-content: space-between; gap: 6px; width: 100%; text-align: left; border: 0; border-radius: 0; background: transparent; padding: 4px 8px; }
 .item .meta { color: var(--muted); font-size: 11px; }
-.item .attrs { padding: 2px 8px 6px 16px; font-size: 12px; }
-.item .attrs dt { color: var(--muted); float: left; clear: left; margin-right: 6px; }
-.item .attrs dd { margin: 0 0 1px; overflow-wrap: anywhere; }
+.item .attrs { display: grid; grid-template-columns: max-content 1fr; gap: 1px 8px; margin: 0; padding: 2px 8px 6px 16px; font-size: 12px; }
+.item .attrs dt { color: var(--muted); }
+.item .attrs dd { margin: 0; overflow-wrap: anywhere; min-height: 1em; }
 button.objlink { color: var(--accent); cursor: pointer; text-decoration: underline; background: none; border: 0; padding: 0; }
 .err button { margin-top: 6px; }
