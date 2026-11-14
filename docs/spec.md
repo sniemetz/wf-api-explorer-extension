@@ -305,8 +305,7 @@ Notes:
 
 - Manifest V3.
 - Permissions: `storage`, `alarms`. Add `unlimitedStorage` if the quota is a problem (see Cache).
-- `host_permissions`: `https://api-cl01.my.workfront.com/*`, `https://*.workfront.com/*`, `https://*.my.workfront.com/*`.
-  - `https://*.workfront.com/*` covers `developersupport.workfront.com` (needed for the version options, section 6.4).
+- `host_permissions` (v1, narrow): `https://api-cl01.my.workfront.com/*`, `https://developersupport.workfront.com/*` (version options, section 6.4). v2 adds `https://*.my.workfront.com/*` (section 9.3).
 - Background: a service worker runs the prefetch and the hourly alarm.
   - **Inference:** Chrome can stop a service worker when it is idle. The alarm starts it again. A run of about 8 s is short. Not tested.
 - Fetch from the service worker or the extension page. With `host_permissions`, CORS does not block the call.

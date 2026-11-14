@@ -14,7 +14,7 @@
 
 - Manifest V3. No remote code.
 - Permissions: `storage`, `alarms`. Add `unlimitedStorage` only if quota is a problem.
-- `host_permissions`: `https://api-cl01.my.workfront.com/*`, `https://*.workfront.com/*`, `https://*.my.workfront.com/*`.
+- `host_permissions`: `https://api-cl01.my.workfront.com/*`, `https://developersupport.workfront.com/*` (narrow, v1).
 - Host: fixed constant `https://api-cl01.my.workfront.com` (no host setting, no options page). Metadata URL: `{host}/attask/api{versionValue}/metadata` and `{host}/attask/api{versionValue}/{OBJCODE}/metadata`. `versionValue` is `/v22.0` or `-unsupported`.
 - Version options source: `<select ng-model="apiversion">` in `https://developersupport.workfront.com/page-api-explorer.html`. Fallback: v15.0 to v22.0 + "API Unsupported".
 - Version probe: request `v{highest+1}.0` until not HTTP 200. v23.0 = 200, v24.0 = 400 today.
