@@ -3,7 +3,7 @@
   "name": "Workfront API Explorer",
   "version": "0.1.0",
   "description": "Browse Workfront API object metadata (fields, references, collections, search, actions, queries).",
-  "permissions": ["storage", "alarms"],
+  "permissions": ["storage", "alarms", "unlimitedStorage"],
   "host_permissions": [
     "https://api-cl01.my.workfront.com/*",
     "https://developersupport.workfront.com/*"

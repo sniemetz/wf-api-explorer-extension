@@ -9,7 +9,7 @@ export const TABS = [
 
 export const tabEntries = (detail, key) => Object.entries(detail?.[key] ?? {});
 
-export const visibleAttrs = (attrs) => Object.entries(attrs ?? {}).filter(([k]) => k !== 'label');
+export const visibleAttrs = (attrs) => Object.entries(attrs ?? {}).filter(([k, v]) => k !== 'label' && v != null);
 
 export function itemMeta(attrs) {
   const type = attrs.fieldType || attrs.typeObjCode || attrs.resultType || '';

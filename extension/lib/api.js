@@ -21,7 +21,16 @@ export function createApi(fetchFn) {
     }
     if (!res.ok) throw new ApiError(`HTTP ${res.status}`, res.status, url);
     const text = await res.text();
-    return { text, data: JSON.parse(text).data };
+    let data;
+    try {
+      data = JSON.parse(text).data;
+    } catch {
+      throw new ApiError('Unexpected response (not JSON)', res.status, url);
+    }
+    if (data === null || typeof data !== 'object') {
+      throw new ApiError('Unexpected response (no data)', res.status, url);
+    }
+    return { text, data };
   }
 
   function dedupe(url) {

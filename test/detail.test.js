@@ -22,3 +22,8 @@ test('itemMeta joins type and flags', () => {
   assert.equal(itemMeta({ typeObjCode: 'USER' }), 'USER');
   assert.equal(itemMeta({ label: 'Q', arguments: [] }), '');
 });
+
+test('visibleAttrs hides null and undefined values but keeps false, 0 and empty arrays', () => {
+  const attrs = { label: 'L', enumType: null, url: undefined, fieldType: 'string', flags: [], n: 0, b: false };
+  assert.deepEqual(visibleAttrs(attrs), [['fieldType', 'string'], ['flags', []], ['n', 0], ['b', false]]);
+});

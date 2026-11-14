@@ -167,6 +167,7 @@ async function loadList(ver) {
       return;
     }
   }
+  if (!current()) return;
   chrome.runtime.sendMessage({ type: 'prefetch', version: ver }).catch(() => {});
 }
 

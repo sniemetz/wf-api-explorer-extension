@@ -4,8 +4,8 @@ import { createApi } from '../lib/api.js';
 import { createSync } from '../lib/sync.js';
 import { loadVersions } from '../lib/bootstrap.js';
 import { highestVersion } from '../lib/versions.js';
+import { populate, ALARM } from '../lib/startup.js';
 
-const ALARM = 'refresh';
 const fetchFn = (url) => fetch(url);
 const cache = createCache(chrome.storage.local);
 const sync = createSync({ api: createApi(fetchFn), cache });
@@ -14,16 +14,8 @@ async function versions() {
   return loadVersions({ host: HOST, explorerUrl: EXPLORER_URL, fetchFn, cache });
 }
 
-// Extension load (install, browser start): spec 6.2.1.
-async function populate() {
-  const options = await versions();
-  const latest = highestVersion(options).value;
-  await chrome.storage.local.set({ selectedVersion: latest });
-  const { entry } = await sync.checkList(HOST, latest);
-  const codes = Object.values(entry.data.objects).map((o) => o.objCode);
-  await chrome.alarms.create(ALARM, { periodInMinutes: 60 });
-  await sync.prefetchAll(HOST, latest, codes);
-}
+const populateNow = () =>
+  populate({ host: HOST, getVersions: versions, storage: chrome.storage.local, sync, alarms: chrome.alarms });
 
 async function hourly() {
   const options = await versions();
@@ -33,10 +25,10 @@ async function hourly() {
 
 const log = (label) => (err) => console.error(`[wf-api-explorer] ${label}`, err);
 
-chrome.runtime.onInstalled.addListener(() => { populate().catch(log('install')); });
+chrome.runtime.onInstalled.addListener(() => { populateNow().catch(log('install')); });
 
 chrome.runtime.onStartup.addListener(() => {
-  populate()
+  populateNow()
     .then(async () => {
       const { selectedVersion } = await chrome.storage.local.get('selectedVersion');
       await sync.refreshIfStale(HOST, selectedVersion);

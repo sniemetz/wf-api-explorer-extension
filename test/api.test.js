@@ -53,3 +53,14 @@ test('a failed request is not cached as in-flight', async () => {
   await api.fetchDetail(H, '/v22.0', 'PROJ');
   assert.equal(n, 2);
 });
+
+test('200 with a non-JSON body throws ApiError with status 200 and url', async () => {
+  const api = createApi(async () => res(200, '<html>portal</html>'));
+  await assert.rejects(api.fetchList(H, '/v22.0'), (e) =>
+    e instanceof ApiError && e.status === 200 && e.url === 'https://h/attask/api/v22.0/metadata');
+});
+
+test('200 JSON without an object "data" key throws ApiError', async () => {
+  const api = createApi(async () => res(200, '{"foo":1}'));
+  await assert.rejects(api.fetchDetail(H, '/v22.0', 'PROJ'), (e) => e instanceof ApiError && e.status === 200);
+});
