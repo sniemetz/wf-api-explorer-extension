@@ -350,6 +350,8 @@ Notes:
 
 ### 9.1 v2: context menu on selected text
 
+Status: dropped 2026-11-14 (user sees little value). Kept below for reference only.
+
 - Trigger: the user selects text in a browser window and opens the right-click menu.
 - Match: compare the selected text with the cached object list (`objCode`, `name`, `label`; case-insensitive).
   - **Inference:** The match rule is not defined in the request. Proposed: exact match, case-insensitive. Confirm.
