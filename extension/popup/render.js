@@ -50,28 +50,12 @@ export function renderObjectList(container, objects, selectedCode, onSelect) {
 
 const list = (v) => (Array.isArray(v) ? v.join(', ') : v == null ? '-' : String(v));
 
-export function copyButton(text, getJson) {
-  const btn = el('button', { type: 'button', class: 'copy', text });
-  btn.addEventListener('click', async (e) => {
-    e.stopPropagation();
-    try {
-      await navigator.clipboard.writeText(getJson());
-      btn.textContent = 'Copied';
-    } catch {
-      btn.textContent = 'Copy failed';
-    }
-    setTimeout(() => { btn.textContent = text; }, 1200);
-  });
-  return btn;
-}
-
 export function renderDetailHead(container, obj, detail) {
   container.replaceChildren(
     el('div', {}, el('strong', { text: detail?.label || obj.label }), ` (${obj.objCode})`),
     ...(detail ? [
       el('div', { text: `Flags: ${list(detail.flags)}` }),
       el('div', { text: `Operations: ${list(detail.operations)}` }),
-      copyButton('Copy object as JSON', () => JSON.stringify(detail, null, 2)),
     ] : []),
   );
 }
@@ -111,7 +95,7 @@ export function renderItems(container, entries, { expanded, onToggle, resolveCod
     if (open) {
       const dl = el('dl', { class: 'attrs' });
       for (const [k, v] of visibleAttrs(attrs)) dl.append(el('dt', { text: `${k}:` }), el('dd', {}, valueNode(k, v, resolveCode, onLink, objCodeFromUrl)));
-      item.append(dl, copyButton('Copy JSON', () => JSON.stringify({ [name]: attrs }, null, 2)));
+      item.append(dl);
     }
     return item;
   }));

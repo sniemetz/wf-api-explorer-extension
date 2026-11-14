@@ -190,7 +190,7 @@ package.json  (scripts.test = "node --test test/")
 
 **Files:** Modify popup files.
 
-- [ ] **Step 1:** Copy-as-JSON button per item and per object (`navigator.clipboard.writeText`). `/` focuses the object search box (not while typing in an input). Refresh button (forces `refresh`, decision 2).
+- [ ] **Step 1:** (Copy-as-JSON removed 2026-11-14 by user.) `/` focuses the object search box (not while typing in an input). Refresh button (forces `refresh`, decision 2).
 - [ ] **Step 2:** Accessibility: keyboard navigation of list and tabs, visible focus.
 - [ ] **Step 3:** `npm test` (all pass). User runs the UI checklist from `docs/spec.md` section 10.
 - [ ] **Step 4:** Take 1280 x 800 screenshots for the store into `assets/store/`. Commit `feat: utilities and verification`.

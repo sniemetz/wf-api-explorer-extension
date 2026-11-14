@@ -76,7 +76,6 @@ In scope (v1):
 - Two search boxes (object list and tab content).
 - Cache, change check on open, background prefetch, and hourly refresh.
 - Links between objects.
-- Copy as JSON.
 
 Out of scope (v1):
 
@@ -298,7 +297,6 @@ Notes:
 
 ### 6.6 Utilities
 
-- Copy item or object as JSON.
 - Keyboard: `/` focuses the search box.
 - Keep state: the last selected object and tab are restored when the popup opens (same version only).
 - In an expanded item, the `url` attribute is a link that opens the linked object in the explorer. Null attributes are hidden.
