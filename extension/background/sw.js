@@ -5,10 +5,12 @@ import { createSync } from '../lib/sync.js';
 import { loadVersions } from '../lib/bootstrap.js';
 import { highestVersion } from '../lib/versions.js';
 import { populate, ALARM } from '../lib/startup.js';
+import { createRefreshJob } from '../lib/refreshJob.js';
 
 const fetchFn = (url) => fetch(url);
 const cache = createCache(chrome.storage.local);
 const sync = createSync({ api: createApi(fetchFn), cache });
+const refreshJob = createRefreshJob({ sync, storage: chrome.storage.local, host: HOST });
 
 async function versions() {
   return loadVersions({ host: HOST, explorerUrl: EXPLORER_URL, fetchFn, cache });
@@ -42,6 +44,10 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
 // Popup asks for a prefetch when the user switches version (popup may close first).
 chrome.runtime.onMessage.addListener((msg) => {
+  if (msg?.type === 'refresh') {
+    refreshJob.start(msg.version).catch(log('refresh'));
+    return;
+  }
   if (msg?.type !== 'prefetch') return;
   (async () => {
     const { entry } = await sync.checkList(HOST, msg.version);

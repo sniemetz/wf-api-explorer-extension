@@ -6,6 +6,7 @@ import { loadVersions } from '../lib/bootstrap.js';
 import { highestVersion } from '../lib/versions.js';
 import { filterObjects, filterItems } from '../lib/filter.js';
 import { TABS, tabEntries, visibleAttrs } from '../lib/detail.js';
+import { STATUS_KEY, describeStatus } from '../lib/refreshJob.js';
 import { renderObjectList, showMessage, debounce, renderDetailHead, renderTabs, renderItems } from './render.js';
 
 const fetchFn = (url) => fetch(url);
@@ -231,6 +232,7 @@ async function init() {
     });
   }
   if (sameVersion) dom.objList.scrollTop = view.objScroll ?? 0;
+  renderRefresh((await chrome.storage.local.get(STATUS_KEY))[STATUS_KEY]);
 }
 
 dom.version.addEventListener('change', async () => {
@@ -248,34 +250,48 @@ dom.tabSearch.addEventListener('input', debounce(() => { renderItemsView(); save
 dom.objList.addEventListener('scroll', debounce(saveView, 200));
 dom.items.addEventListener('scroll', debounce(saveView, 200));
 
-function refreshNote({ changed, failed, total }) {
-  if (failed) return `Refresh incomplete: ${failed} of ${total} objects failed${changed ? `, ${changed} updated` : ''}`;
-  return changed ? `Updated ${changed} item${changed === 1 ? '' : 's'}` : 'Already up to date';
+function setRefreshBusy(busy) {
+  dom.refresh.disabled = busy;
+  if (busy) {
+    dom.refresh.setAttribute('aria-busy', 'true');
+    dom.refresh.replaceChildren(Object.assign(document.createElement('span'), { className: 'spinner' }), 'Refreshing...');
+  } else {
+    dom.refresh.removeAttribute('aria-busy');
+    dom.refresh.textContent = 'Refresh';
+  }
 }
 
-dom.refresh.addEventListener('click', async () => {
-  const ver = state.ver;
-  dom.refresh.disabled = true;
-  dom.refresh.setAttribute('aria-busy', 'true');
-  dom.refresh.replaceChildren(Object.assign(document.createElement('span'), { className: 'spinner' }), 'Refreshing...');
-  setNote('');
-  try {
-    const result = await sync.refresh(HOST, ver);
-    if (ver !== state.ver) return;
-    const list = await cache.getList(HOST, ver);
-    if (list) applyList(list);
-    if (state.selected) {
-      const detail = await cache.getDetail(HOST, ver, state.selected.objCode);
-      if (detail && ver === state.ver) showDetail(state.selected, detail);
-    }
-    setNote(refreshNote(result));
-  } catch {
-    if (ver === state.ver) setNote('Refresh failed: could not reach Workfront. Cached data kept.');
-  } finally {
-    dom.refresh.textContent = 'Refresh';
-    dom.refresh.removeAttribute('aria-busy');
-    dom.refresh.disabled = false;
+async function reloadFromCache(ver) {
+  const list = await cache.getList(HOST, ver);
+  if (list && ver === state.ver) applyList(list);
+  if (state.selected) {
+    const detail = await cache.getDetail(HOST, ver, state.selected.objCode);
+    if (detail && ver === state.ver) showDetail(state.selected, detail);
   }
+}
+
+// The refresh runs in the service worker; its status lives in storage (see lib/refreshJob.js).
+async function renderRefresh(status) {
+  const { busy, text } = describeStatus(status);
+  setRefreshBusy(busy);
+  if (busy || !status || status.seen) return;
+  await chrome.storage.local.set({ [STATUS_KEY]: { ...status, seen: true } });
+  if (status.version !== state.ver) return;
+  if (status.state === 'done') await reloadFromCache(status.version);
+  setNote(text);
+}
+
+dom.refresh.addEventListener('click', () => {
+  setRefreshBusy(true);
+  setNote('');
+  chrome.runtime.sendMessage({ type: 'refresh', version: state.ver }).catch(() => {
+    setRefreshBusy(false);
+    setNote('Refresh failed: could not start. Cached data kept.');
+  });
+});
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes[STATUS_KEY]) renderRefresh(changes[STATUS_KEY].newValue);
 });
 
 document.addEventListener('keydown', (e) => {
