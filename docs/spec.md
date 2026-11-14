@@ -158,7 +158,7 @@ No `flags` and no `resultType`.
 
 Latest mockup: `mockup/mockup-v4-latest.png` (in the project folder).
 
-- Entry point: toolbar popup. Size about 742 px x 445 px (right panel 500 px wide; changed from 600 px on 2026-11-14).
+- Entry point: toolbar popup. Size about 792 px x 445 px (left panel 260 px, right panel 500 px; changed from 600 px on 2026-11-14).
 - Title: "Workfront API explorer" (top left).
 - Version dropdown: top right (see section 6.4).
 - Left panel: object search box ("Search objects") above a scrollable list of objects.
@@ -241,7 +241,7 @@ Notes:
 - Click a tab: show its items in the scrollable list.
 - Tab search box: filters the items in the active tab while typing (about 200 ms debounce). Match on item name and label. Clear the box when the user selects another object.
 - Show the item count on each tab, for example "Fields (183)". Optional. Not in the mockup.
-- Per item: label, name, type, and flags.
+- Per item (collapsed): label left, API name right. Type and flags show only in the expanded view.
 - Expand an item to see all attributes, including `possibleValues`.
 - Hide `label` in the expanded list (the Explorer does this).
 - `typeObjCode` is a link. A click opens that object.
@@ -298,7 +298,7 @@ Notes:
 ### 6.6 Utilities
 
 - Keyboard: `/` focuses the search box.
-- Keep state: the last selected object, tab, and both search texts are restored when the popup opens (same version only).
+- Keep state: the last selected object, tab, and both search texts, expanded items, and both scroll positions are restored when the popup opens (same version only).
 - In an expanded item, null attributes and `url` are hidden (`typeObjCode` is the link to the linked object).
 - Selecting an object scrolls it into view in the list. If the search filter hides it, the filter is cleared.
 
@@ -342,7 +342,7 @@ Notes:
 
 - Open the list in under 1 second from cache.
 - The change check runs async. It must not block the first render.
-- Popup size: about 742 px x 445 px.
+- Popup size: about 792 px x 445 px (Chrome popup maximum is 800 px wide).
 - No data leaves the browser except the calls to Workfront hosts.
 - No API key and no password stored in v1.
 - Accessible: keyboard navigation and visible focus.

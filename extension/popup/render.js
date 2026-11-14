@@ -83,13 +83,13 @@ function valueNode(key, value, resolveCode, onLink) {
   return document.createTextNode(String(value));
 }
 
-export function renderItems(container, entries, { expanded, onToggle, resolveCode, onLink, visibleAttrs, itemMeta }) {
+export function renderItems(container, entries, { expanded, onToggle, resolveCode, onLink, visibleAttrs }) {
   container.replaceChildren(...entries.map(([name, attrs]) => {
     const open = expanded.has(name);
     const item = el('div', { class: 'item' },
       el('button', { type: 'button', 'aria-expanded': String(open), onClick: () => onToggle(name) },
-        el('span', {}, el('strong', { text: attrs.label || name }), ` ${name}`),
-        el('span', { class: 'meta', text: itemMeta(attrs) })),
+        el('strong', { class: 'pretty', text: attrs.label || name }),
+        el('span', { class: 'meta', text: attrs.label ? name : '' })),
     );
     if (open) {
       const dl = el('dl', { class: 'attrs' });

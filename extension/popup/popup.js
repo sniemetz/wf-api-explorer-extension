@@ -5,7 +5,7 @@ import { createSync } from '../lib/sync.js';
 import { loadVersions } from '../lib/bootstrap.js';
 import { highestVersion } from '../lib/versions.js';
 import { filterObjects, filterItems } from '../lib/filter.js';
-import { TABS, tabEntries, visibleAttrs, itemMeta } from '../lib/detail.js';
+import { TABS, tabEntries, visibleAttrs } from '../lib/detail.js';
 import { renderObjectList, showMessage, debounce, renderDetailHead, renderTabs, renderItems } from './render.js';
 
 const fetchFn = (url) => fetch(url);
@@ -37,6 +37,7 @@ function saveView() {
   chrome.storage.local.set({ view: {
     ver: state.ver, objCode: state.selected?.objCode ?? null, tab: state.tab,
     objSearch: dom.objSearch.value, tabSearch: dom.tabSearch.value,
+    expanded: [...state.expanded], objScroll: dom.objList.scrollTop, itemsScroll: dom.items.scrollTop,
   } }).catch(() => {});
 }
 
@@ -75,6 +76,7 @@ function renderItemsView() {
     onToggle: (name) => {
       if (!state.expanded.delete(name)) state.expanded.add(name);
       renderItemsView();
+      saveView();
     },
     resolveCode: (code) => (code ? state.objects.find((o) => o.objCode.toLowerCase() === code.toLowerCase())?.objCode : undefined),
     onLink: (code) => {
@@ -82,7 +84,6 @@ function renderItemsView() {
       if (target) selectObject(target);
     },
     visibleAttrs,
-    itemMeta,
   });
 }
 
@@ -122,14 +123,14 @@ function revealSelected() {
   dom.objList.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
 }
 
-async function selectObject(obj, { tab = 'fields', tabSearch = '' } = {}) {
+async function selectObject(obj, { tab = 'fields', tabSearch = '', expanded = [], itemsScroll = 0 } = {}) {
   const ver = state.ver;
   const token = ++state.detailToken;
   const current = () => token === state.detailToken && ver === state.ver;
   state.selected = obj;
   state.detail = null;
   state.tab = tab;
-  state.expanded.clear();
+  state.expanded = new Set(expanded);
   dom.tabSearch.value = tabSearch;
   saveView();
   dom.items.replaceChildren();
@@ -143,6 +144,7 @@ async function selectObject(obj, { tab = 'fields', tabSearch = '' } = {}) {
   if (!current()) return;
   if (cached) {
     showDetail(obj, cached);
+    dom.items.scrollTop = itemsScroll;
     if (!cached.needsLogin) {
       sync.checkDetail(HOST, ver, obj.objCode)
         .then((r) => { if (current() && r.changed) showDetail(obj, r.entry); })
@@ -155,7 +157,7 @@ async function selectObject(obj, { tab = 'fields', tabSearch = '' } = {}) {
   showMessage(dom.items, 'loading', { text: 'Loading details...' });
   try {
     const r = await sync.checkDetail(HOST, ver, obj.objCode);
-    if (current()) showDetail(obj, r.entry);
+    if (current()) { showDetail(obj, r.entry); dom.items.scrollTop = itemsScroll; }
   } catch (err) {
     if (current()) {
       showMessage(dom.items, 'error', {
@@ -221,11 +223,14 @@ async function init() {
   await loadList(state.ver);
   const restore = sameVersion && state.objects.find((o) => o.objCode === view.objCode);
   if (restore) {
-    selectObject(restore, {
+    await selectObject(restore, {
       tab: TABS.some((t) => t.key === view.tab) ? view.tab : 'fields',
       tabSearch: view.tabSearch ?? '',
+      expanded: Array.isArray(view.expanded) ? view.expanded : [],
+      itemsScroll: view.itemsScroll ?? 0,
     });
   }
+  if (sameVersion) dom.objList.scrollTop = view.objScroll ?? 0;
 }
 
 dom.version.addEventListener('change', async () => {
@@ -240,6 +245,8 @@ dom.version.addEventListener('change', async () => {
 
 dom.objSearch.addEventListener('input', debounce(() => { renderList(); saveView(); }, 200));
 dom.tabSearch.addEventListener('input', debounce(() => { renderItemsView(); saveView(); }, 200));
+dom.objList.addEventListener('scroll', debounce(saveView, 200));
+dom.items.addEventListener('scroll', debounce(saveView, 200));
 
 dom.refresh.addEventListener('click', async () => {
   dom.refresh.disabled = true;
