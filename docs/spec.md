@@ -216,8 +216,8 @@ Background prefetch:
 
 - Runs after the first list load. Fetches `/{version}/{OBJCODE}/metadata` for all objects in the list.
 - Concurrency: limited, for example 5 parallel calls. **Inference:** Adobe rate limits for this endpoint are unknown. 10 parallel calls worked without error in the 2026-11-14 test (8.2 s for all 174). Not tested for repeated runs.
-- `ACTLOG` returns 401. Store "Needs login". Do not retry it on every run.
-- A user-requested fetch goes before queued prefetch calls.
+- `ACTLOG` returns 401. Store a "needs login" marker, shown in the UI as "No data available". Do not retry it on every run.
+- A clicked object is fetched directly by the popup; it does not wait in the prefetch queue.
 
 Hourly refresh:
 
@@ -246,7 +246,7 @@ Notes:
 - Hide `label` in the expanded list (the Explorer does this).
 - `typeObjCode` is a link. A click opens that object.
 - Empty tab: show "No items" (the Explorer shows a blank text per section).
-- Show "Needs login" if the call returns 401.
+- Show "No data available" if the call returns 401.
 - The `queries` section is in the metadata and in the cache, but has no tab (decision 2026-11-14). Parity with the Explorer, which hides it.
 
 ### 6.7 Loading and empty states
@@ -420,13 +420,13 @@ Safety rules (if built):
 - Tab search: filters the items in the active tab while typing. Selecting another object clears it.
 - Change the version: the list and the cache switch to that version.
 - Open the popup right after install (empty cache): list loads in the foreground. A clicked object loads on demand.
-- Prefetch: after about 10 s all 174 details are in cache (`ACTLOG` as "Needs login").
+- Prefetch: after about 10 s all 174 details are in cache (`ACTLOG` as "No data available").
 - Hourly alarm: change a cached hash (test hook). After the run the detail is updated.
 - Incognito (with "Allow in Incognito" on): the cache is available.
 - Click outside the popup: popup closes.
 - `PROJ` detail: 183 fields, 11 actions (as of 2026-11-11).
 - `TASK` detail: 20 actions.
-- `ACTLOG`: shows "Needs login".
+- `ACTLOG`: shows "No data available".
 - Search `proj` returns Project and similar labels.
 - Click a `typeObjCode` link: opens the linked object.
 - Version change reloads data.

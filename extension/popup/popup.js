@@ -105,7 +105,7 @@ function showDetail(obj, entry) {
     state.detail = null;
     renderDetailHead(dom.detailHead, obj, null);
     dom.tabs.replaceChildren();
-    showMessage(dom.items, 'empty', { text: 'Needs login' });
+    showMessage(dom.items, 'empty', { text: 'No data available' });
     return;
   }
   state.detail = entry.data;

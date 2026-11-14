@@ -110,14 +110,6 @@ test('prefetchAll continues after a failed object', async () => {
   assert.ok(await s.cache.getDetail(H, V, 'B'));
 });
 
-test('prioritise moves a queued code to the front', async () => {
-  const s = setup({ codes: ['A', 'B', 'C', 'D'], delay: 5 });
-  const p = s.sync.prefetchAll(H, V, ['A', 'B', 'C', 'D'], { concurrency: 1 });
-  s.sync.prioritise('D');
-  await p;
-  assert.deepEqual(s.calls, ['A', 'D', 'B', 'C']);
-});
-
 test('refresh sets lastRun and rewrites only changed details', async () => {
   const s = setup({ codes: ['A', 'B'] });
   await s.sync.refresh(H, V);

@@ -72,11 +72,6 @@ export function createSync({ api, cache, now = Date.now }) {
     return Promise.all(jobs).then(() => {});
   }
 
-  function prioritise(code) {
-    const i = queue.findIndex((j) => j.code === code);
-    if (i > 0) queue.unshift(...queue.splice(i, 1));
-  }
-
   async function refresh(host, ver) {
     const { entry, changed: listChanged } = await checkList(host, ver);
     const codes = Object.values(entry.data.objects).map((o) => o.objCode).filter(isValidObjCode);
@@ -102,5 +97,5 @@ export function createSync({ api, cache, now = Date.now }) {
     return true;
   }
 
-  return { checkList, checkDetail, prefetchAll, prioritise, refresh, refreshIfStale };
+  return { checkList, checkDetail, prefetchAll, refresh, refreshIfStale };
 }
