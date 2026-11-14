@@ -81,7 +81,7 @@ Out of scope (v1):
 
 - Custom fields.
 - Record data.
-- Authenticated requests (see section 9, backlog).
+- Authenticated requests (dropped 2026-11-14: only `ACTLOG` needs login; the extension shows "No data available", as the Explorer does).
 - Context-menu lookup (see section 9.1, backlog).
 
 ## 4. Data model
@@ -372,38 +372,6 @@ Status: dropped 2026-11-14 (user sees little value). Kept below for reference on
 - Metadata could differ per cluster. The cache key already includes the host, so each cluster has its own cache.
 - Deferred: behavior when a cluster is down. Address when this is built.
 - Needs `host_permissions` for `https://*.my.workfront.com/*`.
-
-### 9.2 Send a request (authenticated)
-
-Status: backlog. Not part of v1.
-
-Context:
-
-- Adobe plans to end API keys (user statement; source not verified).
-- The extension needs an authenticated browser session with the target instance.
-- Login uses Adobe SSO. Do the login in a popup window.
-
-Proposed approach (design only, not tested):
-
-1. User selects an instance host.
-2. Extension opens the host in a popup window for SSO login.
-3. Extension calls `https://{host}/attask/api/v22.0/{OBJ}` with `credentials: 'include'`.
-4. If that fails, run the call in the page of an open Workfront tab with `chrome.scripting.executeScript`. Permissions: `scripting`, `activeTab`.
-5. Show the response. Read-only first.
-
-Open tests:
-
-- Does the session cookie authenticate API calls? Test `GET /attask/api/v22.0/user?action=count` after login.
-- Does the extension service worker send the cookie? Check `SameSite` rules.
-- What is the Adobe-supported way to authenticate after API keys end? Check Adobe developer docs.
-- Can IBM policy allow session reuse by an extension? Ask IT and security.
-
-Safety rules (if built):
-
-- Read-only by default (GET).
-- Block POST, PUT, DELETE until the user confirms.
-- Never store session tokens in extension storage.
-- Show the exact URL before sending.
 
 ## 10. Test plan
 
