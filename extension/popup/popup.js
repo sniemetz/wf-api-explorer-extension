@@ -216,4 +216,11 @@ dom.refresh.addEventListener('click', async () => {
   }
 });
 
+document.addEventListener('keydown', (e) => {
+  if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+  e.preventDefault();
+  dom.objSearch.focus();
+});
+
 init().catch((err) => showMessage(dom.objList, 'error', { status: err.status ?? null, url: err.url, onRetry: init }));
