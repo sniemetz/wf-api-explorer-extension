@@ -203,7 +203,11 @@ function fillVersions(options, selected) {
   dom.version.disabled = false;
 }
 
+let typedEarly = false; // user typed before the saved view was restored
+dom.objSearch.addEventListener('input', () => { typedEarly = true; });
+
 async function init() {
+  dom.objSearch.focus(); // click icon, then type
   showMessage(dom.objList, 'loading', { text: 'Loading...' });
   const cachedVersions = await cache.getVersions(HOST);
   const options = cachedVersions?.data?.length
@@ -214,7 +218,10 @@ async function init() {
   fillVersions(options, state.ver);
   const { view } = await chrome.storage.local.get('view');
   const sameVersion = view?.ver === state.ver;
-  if (sameVersion) dom.objSearch.value = view.objSearch ?? '';
+  if (sameVersion && !typedEarly) {
+    dom.objSearch.value = view.objSearch ?? '';
+    dom.objSearch.select(); // the first keystroke replaces the restored text
+  }
   await loadList(state.ver);
   const restore = sameVersion && state.objects.find((o) => o.objCode === view.objCode);
   if (restore) {
