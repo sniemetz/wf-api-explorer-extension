@@ -4,7 +4,7 @@ import { createApi } from '../lib/api.js';
 import { createSync } from '../lib/sync.js';
 import { loadVersions } from '../lib/bootstrap.js';
 import { highestVersion } from '../lib/versions.js';
-import { populate, ALARM } from '../lib/startup.js';
+import { populate, prefetchFromCache, ALARM } from '../lib/startup.js';
 import { createRefreshJob } from '../lib/refreshJob.js';
 
 const fetchFn = (url) => fetch(url);
@@ -50,8 +50,5 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return;
   }
   if (msg?.type !== 'prefetch') return;
-  (async () => {
-    const { entry } = await sync.checkList(HOST, msg.version);
-    await sync.prefetchAll(HOST, msg.version, Object.values(entry.data.objects).map((o) => o.objCode));
-  })().catch(log('prefetch'));
+  prefetchFromCache({ host: HOST, version: msg.version, cache, sync }).catch(log('prefetch'));
 });

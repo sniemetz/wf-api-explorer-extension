@@ -172,12 +172,17 @@ async function loadList(ver) {
   const token = ++state.listToken;
   const current = () => token === state.listToken;
   setNote('');
+  // The worker prefetches from the cached list, so ask only after our own list check has finished.
+  const requestPrefetch = () => {
+    if (current()) chrome.runtime.sendMessage({ type: 'prefetch', version: ver }).catch(() => {});
+  };
   const cached = await cache.getList(HOST, ver);
   if (cached) {
     applyList(cached);
     sync.checkList(HOST, ver)
       .then((r) => { if (current() && r.changed) applyList(r.entry); })
-      .catch(() => { if (current()) setNote('Offline, showing cached data'); });
+      .catch(() => { if (current()) setNote('Offline, showing cached data'); })
+      .finally(requestPrefetch);
   } else {
     showMessage(dom.objList, 'loading', { text: 'Loading objects...' });
     try {
@@ -194,8 +199,7 @@ async function loadList(ver) {
       return;
     }
   }
-  if (!current()) return;
-  chrome.runtime.sendMessage({ type: 'prefetch', version: ver }).catch(() => {});
+  requestPrefetch();
 }
 
 function fillVersions(options, selected) {

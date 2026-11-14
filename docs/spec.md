@@ -197,7 +197,7 @@ On extension load (install, and each browser start):
 4. Start the background prefetch of all object details (see below). It runs async. It does not block the UI.
 5. Create the hourly alarm (see below).
 
-On every popup open:
+On every popup open (the popup checks the list once; it then asks the service worker to prefetch details from the cached list, so the list is not fetched twice):
 
 1. If the list is in cache: render it at once.
 2. If the list is not in cache (for example the user opens the popup before step 3 ends): fetch it in the foreground. Show a loading state. Render when done.
@@ -281,6 +281,7 @@ Notes:
   - **Known gap:** v23.0 is the current API version (user statement; not verified). The Explorer page does not list it yet. `/attask/api/v23.0/metadata` returns HTTP 200 (tested 2026-11-14). `v24.0` returns HTTP 400.
   - Version probe (decision, in v1): after parsing the options, request `/attask/api/v{highest+1}.0/metadata`. If the answer is HTTP 200, add that version to the dropdown with the label "API Version {n}.0". Repeat with the next number until the answer is not HTTP 200.
   - Run the probe on extension load and in the hourly refresh. Cache the result.
+  - Validation (decision 2026-11-14): every version in the dropdown (parsed or probed) must answer its `/metadata` call with HTTP 200. A version that answers anything else is removed from the dropdown. A network error keeps the option (it proves nothing). If no numeric version is left, keep the unvalidated list. If the page lists no numeric version, use the hard-coded list.
   - Reason: a version that the API serves is real, and the probe costs one small call. Today: v23.0 returns 200 and v24.0 returns 400.
   - When Adobe adds the version to the Explorer page, the parsed list and the probe agree. No update is needed.
   - **Inference:** a probed version has no Adobe documentation. Its metadata can change without notice. The hourly refresh picks up changes.

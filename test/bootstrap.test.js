@@ -27,14 +27,16 @@ const html = `<select ng-model="apiversion">
 
 const res = (status, body = '') => ({ status, ok: status < 300, text: async () => body });
 
-function router({ page = html, pageStatus = 200, probe = { 23: 200 } } = {}) {
+function router({ page = html, pageStatus = 200, ok = [21, 22, 23], throwMeta = false } = {}) {
   return async (url) => {
     if (url === EXPLORER) {
       if (pageStatus === 'throw') throw new Error('offline');
       return res(pageStatus, page);
     }
+    if (throwMeta) throw new Error('offline');
+    if (url.endsWith('/attask/api-unsupported/metadata')) return res(200);
     const m = /\/v(\d+)\.0\/metadata$/.exec(url);
-    if (m) return res(probe[m[1]] ?? 400);
+    if (m) return res(ok.includes(Number(m[1])) ? 200 : 400);
     return res(404);
   };
 }
@@ -54,13 +56,38 @@ test('result is cached', async () => {
 
 test('malformed explorer html falls back to hard-coded list', async () => {
   const cache = createCache(fakeStorage());
-  const opts = await loadVersions({ host: H, explorerUrl: EXPLORER, fetchFn: router({ page: '<p>x</p>', probe: {} }), cache });
+  const opts = await loadVersions({ host: H, explorerUrl: EXPLORER, fetchFn: router({ page: '<p>x</p>', ok: [15, 16, 17, 18, 19, 20, 21, 22] }), cache });
   assert.deepEqual(opts, FALLBACK_VERSIONS);
 });
 
 test('explorer unreachable uses cached options before the hard-coded list', async () => {
   const cache = createCache(fakeStorage());
   await loadVersions({ host: H, explorerUrl: EXPLORER, fetchFn: router(), cache });
-  const opts = await loadVersions({ host: H, explorerUrl: EXPLORER, fetchFn: router({ pageStatus: 'throw', probe: {} }), cache });
+  const opts = await loadVersions({ host: H, explorerUrl: EXPLORER, fetchFn: router({ pageStatus: 'throw' }), cache });
   assert.deepEqual(opts.map((o) => o.value), ['/v21.0', '/v22.0', '/v23.0', '-unsupported']);
+});
+
+test('versions whose metadata is not HTTP 200 are removed from the list', async () => {
+  const cache = createCache(fakeStorage());
+  const opts = await loadVersions({ host: H, explorerUrl: EXPLORER, fetchFn: router({ ok: [22] }), cache });
+  assert.deepEqual(opts.map((o) => o.value), ['/v22.0', '-unsupported']);
+});
+
+test('network errors while validating keep the options (cannot tell)', async () => {
+  const cache = createCache(fakeStorage());
+  const opts = await loadVersions({ host: H, explorerUrl: EXPLORER, fetchFn: router({ throwMeta: true }), cache });
+  assert.deepEqual(opts.map((o) => o.value), ['/v21.0', '/v22.0', '-unsupported']);
+});
+
+test('if no numeric version survives validation, the unvalidated list is kept', async () => {
+  const cache = createCache(fakeStorage());
+  const opts = await loadVersions({ host: H, explorerUrl: EXPLORER, fetchFn: router({ ok: [] }), cache });
+  assert.deepEqual(opts.map((o) => o.value), ['/v21.0', '/v22.0', '-unsupported']);
+});
+
+test('a page that lists only "unsupported" falls back to the hard-coded list', async () => {
+  const cache = createCache(fakeStorage());
+  const page = '<select ng-model="apiversion"><option value="-unsupported">API Unsupported</option></select>';
+  const opts = await loadVersions({ host: H, explorerUrl: EXPLORER, fetchFn: router({ page, ok: [15, 16, 17, 18, 19, 20, 21, 22] }), cache });
+  assert.deepEqual(opts, FALLBACK_VERSIONS);
 });
