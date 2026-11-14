@@ -188,3 +188,13 @@ test('refresh counts failures and skips needsLogin objects', async () => {
   const r2 = await s.sync.refresh(H, V);
   assert.deepEqual(r2, { changed: 0, failed: 1, total: 3 });
 });
+
+test('checkDetail ignores flag order and key order differences between fetches', async () => {
+  const s = setup({ codes: ['A'] });
+  const a = { objCode: 'A', fields: { f: { flags: ['NOT_GROUPABLE', 'READ_ONLY'], label: 'F' } } };
+  const b = { fields: { f: { label: 'F', flags: ['READ_ONLY', 'NOT_GROUPABLE'] } }, objCode: 'A' };
+  s.api.fetchDetail = async () => ({ text: JSON.stringify({ data: a }), data: a });
+  assert.equal((await s.sync.checkDetail(H, V, 'A')).changed, true);
+  s.api.fetchDetail = async () => ({ text: JSON.stringify({ data: b }), data: b });
+  assert.equal((await s.sync.checkDetail(H, V, 'A')).changed, false);
+});

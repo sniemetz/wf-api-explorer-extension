@@ -1,4 +1,4 @@
-import { sha256 } from './hash.js';
+import { sha256, stableStringify } from './hash.js';
 import { ApiError } from './api.js';
 import { isValidObjCode } from './versions.js';
 
@@ -32,7 +32,7 @@ export function createSync({ api, cache, now = Date.now }) {
 
   async function checkList(host, ver) {
     const { text, data } = await api.fetchList(host, ver);
-    const hash = await sha256(text);
+    const hash = await sha256(stableStringify(data));
     const prev = await cache.getList(host, ver);
     if (prev && prev.hash === hash) return { changed: false, entry: prev };
     const entry = { hash, data, fetchedAt: now() };
@@ -54,7 +54,7 @@ export function createSync({ api, cache, now = Date.now }) {
       }
       throw err;
     }
-    const hash = await sha256(res.text);
+    const hash = await sha256(stableStringify(res.data));
     if (prev && prev.hash === hash) return { changed: false, entry: prev };
     const entry = { hash, data: res.data, fetchedAt: now() };
     await cache.setDetail(host, ver, code, entry);
