@@ -47,3 +47,54 @@ export function renderObjectList(container, objects, selectedCode, onSelect) {
     );
   }
 }
+
+const list = (v) => (Array.isArray(v) ? v.join(', ') : v == null ? '-' : String(v));
+
+export function renderDetailHead(container, obj, detail) {
+  container.replaceChildren(
+    el('div', {}, el('strong', { text: detail?.label || obj.label }), ` (${obj.objCode})`),
+    ...(detail ? [
+      el('div', { text: `Flags: ${list(detail.flags)}` }),
+      el('div', { text: `Operations: ${list(detail.operations)}` }),
+    ] : []),
+  );
+}
+
+export function renderTabs(container, tabs, counts, active, onTab) {
+  container.replaceChildren(...tabs.map((t) => el('button', {
+    type: 'button', role: 'tab', 'aria-selected': String(t.key === active),
+    onClick: () => onTab(t.key),
+  }, `${t.label}${counts ? ` (${counts[t.key]})` : ''}`)));
+}
+
+function valueNode(key, value, knownCodes, onLink) {
+  if ((key === 'typeObjCode' || key === 'targetTypeObjCode') && knownCodes.has(value)) {
+    return el('button', { type: 'button', class: 'objlink', text: value, onClick: () => onLink(value) });
+  }
+  if (key === 'possibleValues' && Array.isArray(value)) {
+    return document.createTextNode(value.map((p) => `${p.label} (${p.value})`).join(', ') || '-');
+  }
+  if (key === 'arguments' && Array.isArray(value)) {
+    return document.createTextNode(value.map((a) => `${a.name}: ${a.type}`).join(', ') || '-');
+  }
+  if (Array.isArray(value) && value.every((v) => typeof v !== 'object')) return document.createTextNode(list(value));
+  if (value !== null && typeof value === 'object') return document.createTextNode(JSON.stringify(value));
+  return document.createTextNode(String(value));
+}
+
+export function renderItems(container, entries, { expanded, onToggle, knownCodes, onLink, visibleAttrs, itemMeta }) {
+  container.replaceChildren(...entries.map(([name, attrs]) => {
+    const open = expanded.has(name);
+    const item = el('div', { class: 'item' },
+      el('button', { type: 'button', 'aria-expanded': String(open), onClick: () => onToggle(name) },
+        el('span', {}, el('strong', { text: attrs.label || name }), ` ${name}`),
+        el('span', { class: 'meta', text: itemMeta(attrs) })),
+    );
+    if (open) {
+      const dl = el('dl', { class: 'attrs' });
+      for (const [k, v] of visibleAttrs(attrs)) dl.append(el('dt', { text: `${k}:` }), el('dd', {}, valueNode(k, v, knownCodes, onLink)));
+      item.append(dl);
+    }
+    return item;
+  }));
+}

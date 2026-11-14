@@ -4,8 +4,9 @@ import { createApi, ApiError } from '../lib/api.js';
 import { createSync } from '../lib/sync.js';
 import { loadVersions } from '../lib/bootstrap.js';
 import { highestVersion } from '../lib/versions.js';
-import { filterObjects } from '../lib/filter.js';
-import { renderObjectList, showMessage, debounce } from './render.js';
+import { filterObjects, filterItems } from '../lib/filter.js';
+import { TABS, tabEntries, visibleAttrs, itemMeta } from '../lib/detail.js';
+import { renderObjectList, showMessage, debounce, renderDetailHead, renderTabs, renderItems } from './render.js';
 
 const fetchFn = (url) => fetch(url);
 const cache = createCache(chrome.storage.local);
@@ -15,9 +16,13 @@ const $ = (id) => document.getElementById(id);
 const dom = {
   version: $('version'), note: $('note'), objSearch: $('objSearch'), objList: $('objList'),
   hint: $('hint'), detail: $('detail'), refresh: $('refresh'),
+  detailHead: $('detailHead'), tabs: $('tabs'), tabSearch: $('tabSearch'), items: $('items'),
 };
 
-const state = { ver: null, objects: [], selected: null, listToken: 0 };
+const state = {
+  ver: null, objects: [], selected: null, listToken: 0,
+  detailToken: 0, detail: null, tab: 'fields', expanded: new Set(),
+};
 
 function setNote(text) {
   dom.note.hidden = !text;
@@ -30,6 +35,8 @@ function objectsFrom(entry) {
 
 function clearSelection() {
   state.selected = null;
+  state.detail = null;
+  state.detailToken++;
   dom.detail.hidden = true;
   dom.hint.hidden = false;
 }
@@ -49,10 +56,89 @@ function applyList(entry) {
   renderList();
 }
 
-// Extension point for Task 9.
-export function selectObject(obj) {
+function renderItemsView() {
+  if (!state.detail) return;
+  const entries = tabEntries(state.detail, state.tab);
+  if (!entries.length) return showMessage(dom.items, 'empty', { text: 'No items' });
+  const filtered = filterItems(entries, dom.tabSearch.value);
+  if (!filtered.length) return showMessage(dom.items, 'empty', { text: 'No items match' });
+  renderItems(dom.items, filtered, {
+    expanded: state.expanded,
+    onToggle: (name) => {
+      if (!state.expanded.delete(name)) state.expanded.add(name);
+      renderItemsView();
+    },
+    knownCodes: new Set(state.objects.map((o) => o.objCode)),
+    onLink: (code) => {
+      const target = state.objects.find((o) => o.objCode === code);
+      if (target) selectObject(target);
+    },
+    visibleAttrs,
+    itemMeta,
+  });
+}
+
+function renderTabsView() {
+  const counts = Object.fromEntries(TABS.map((t) => [t.key, tabEntries(state.detail, t.key).length]));
+  renderTabs(dom.tabs, TABS, counts, state.tab, (key) => {
+    state.tab = key;
+    state.expanded.clear();
+    renderTabsView();
+    renderItemsView();
+  });
+}
+
+function showDetail(obj, entry) {
+  if (entry.needsLogin) {
+    state.detail = null;
+    renderDetailHead(dom.detailHead, obj, null);
+    dom.tabs.replaceChildren();
+    showMessage(dom.items, 'empty', { text: 'Needs login' });
+    return;
+  }
+  state.detail = entry.data;
+  renderDetailHead(dom.detailHead, obj, entry.data);
+  renderTabsView();
+  renderItemsView();
+}
+
+async function selectObject(obj) {
+  const ver = state.ver;
+  const token = ++state.detailToken;
+  const current = () => token === state.detailToken && ver === state.ver;
   state.selected = obj;
+  state.detail = null;
+  state.tab = 'fields';
+  state.expanded.clear();
+  dom.tabSearch.value = '';
+  dom.hint.hidden = true;
+  dom.detail.hidden = false;
   renderList();
+
+  const cached = await cache.getDetail(HOST, ver, obj.objCode);
+  if (!current()) return;
+  if (cached) {
+    showDetail(obj, cached);
+    if (!cached.needsLogin) {
+      sync.checkDetail(HOST, ver, obj.objCode)
+        .then((r) => { if (current() && r.changed) showDetail(obj, r.entry); })
+        .catch(() => {});
+    }
+    return;
+  }
+  renderDetailHead(dom.detailHead, obj, null);
+  dom.tabs.replaceChildren();
+  showMessage(dom.items, 'loading', { text: 'Loading details...' });
+  try {
+    const r = await sync.checkDetail(HOST, ver, obj.objCode);
+    if (current()) showDetail(obj, r.entry);
+  } catch (err) {
+    if (current()) {
+      showMessage(dom.items, 'error', {
+        status: err instanceof ApiError ? err.status : null, url: err.url, onRetry: () => selectObject(obj),
+      });
+    }
+  }
 }
 
 async function loadList(ver) {
@@ -116,6 +202,7 @@ dom.version.addEventListener('change', async () => {
 });
 
 dom.objSearch.addEventListener('input', debounce(renderList, 200));
+dom.tabSearch.addEventListener('input', debounce(renderItemsView, 200));
 
 dom.refresh.addEventListener('click', async () => {
   dom.refresh.disabled = true;
