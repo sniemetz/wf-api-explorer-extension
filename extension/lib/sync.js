@@ -1,5 +1,6 @@
 import { sha256 } from './hash.js';
 import { ApiError } from './api.js';
+import { isValidObjCode } from './versions.js';
 
 const HOUR_MS = 3600000;
 
@@ -13,10 +14,10 @@ export function createSync({ api, cache, now = Date.now }) {
       const job = queue.shift();
       running++;
       job.run()
-        .catch(() => {})
-        .finally(() => {
+        .then(() => true, () => false)
+        .then((ok) => {
           running--;
-          job.resolve();
+          job.resolve(ok);
           pump();
         });
     }
@@ -62,7 +63,7 @@ export function createSync({ api, cache, now = Date.now }) {
 
   function prefetchAll(host, ver, codes, { concurrency = 5 } = {}) {
     limit = concurrency;
-    const jobs = codes.map((code) =>
+    const jobs = codes.filter(isValidObjCode).map((code) =>
       enqueue(code, async () => {
         if (await cache.getDetail(host, ver, code)) return;
         await checkDetail(host, ver, code);
@@ -78,8 +79,8 @@ export function createSync({ api, cache, now = Date.now }) {
 
   async function refresh(host, ver) {
     const { entry } = await checkList(host, ver);
-    const codes = Object.values(entry.data.objects).map((o) => o.objCode);
-    await Promise.all(
+    const codes = Object.values(entry.data.objects).map((o) => o.objCode).filter(isValidObjCode);
+    const results = await Promise.all(
       codes.map((code) =>
         enqueue(code, async () => {
           const prev = await cache.getDetail(host, ver, code);
@@ -88,7 +89,7 @@ export function createSync({ api, cache, now = Date.now }) {
         }),
       ),
     );
-    await cache.setLastRun(now());
+    if (results.every(Boolean)) await cache.setLastRun(now());
   }
 
   async function refreshIfStale(host, ver, maxAgeMs = HOUR_MS) {

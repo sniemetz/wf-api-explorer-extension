@@ -3,6 +3,12 @@ export const FALLBACK_VERSIONS = [
   { value: '-unsupported', label: 'API Unsupported' },
 ];
 
+const VERSION_RE = /^(\/v\d+\.\d+|-unsupported)$/;
+const CODE_RE = /^[A-Za-z0-9_]{1,32}$/;
+const MAX_PROBES = 10;
+
+export const isValidObjCode = (code) => typeof code === 'string' && CODE_RE.test(code);
+
 const SELECT_RE = /<select\b[^>]*ng-model="apiversion"[^>]*>([\s\S]*?)<\/select>/i;
 const OPTION_RE = /<option\b[^>]*\bvalue="([^"]*)"[^>]*>([\s\S]*?)<\/option>/gi;
 
@@ -11,7 +17,7 @@ export function parseVersionOptions(html) {
   if (!select) return [];
   const options = [];
   for (const m of select[1].matchAll(OPTION_RE)) {
-    options.push({ value: m[1], label: m[2].trim() });
+    if (VERSION_RE.test(m[1])) options.push({ value: m[1], label: m[2].trim() });
   }
   return options;
 }
@@ -35,6 +41,8 @@ export function highestVersion(options) {
 }
 
 export function metadataUrl(host, versionValue, objCode) {
+  if (!VERSION_RE.test(versionValue)) throw new Error(`Invalid API version: ${versionValue}`);
+  if (objCode !== undefined && !isValidObjCode(objCode)) throw new Error(`Invalid object code: ${objCode}`);
   const base = `${host}/attask/api${versionValue}`;
   return objCode ? `${base}/${objCode}/metadata` : `${base}/metadata`;
 }
@@ -44,7 +52,7 @@ export async function probeVersions(options, fetchFn, host) {
   const top = highestVersion(options);
   if (!top) return hits;
   let next = Math.floor(versionNumber(top.value)) + 1;
-  for (;;) {
+  for (let i = 0; i < MAX_PROBES; i++) {
     const value = `/v${next}.0`;
     let status;
     try {
@@ -56,4 +64,5 @@ export async function probeVersions(options, fetchFn, host) {
     hits.push({ value, label: `API Version ${next}.0` });
     next += 1;
   }
+  return hits;
 }

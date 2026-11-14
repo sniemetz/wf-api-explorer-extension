@@ -144,3 +144,16 @@ test('refreshIfStale runs when lastRun is missing', async () => {
   const s = setup({ codes: ['A'] });
   assert.equal(await s.sync.refreshIfStale(H, V), true);
 });
+
+test('refresh does not set lastRun when a detail fetch fails', async () => {
+  const s = setup({ codes: ['A', 'B'], failCodes: ['A'] });
+  await s.sync.refresh(H, V);
+  assert.equal(await s.cache.getLastRun(), undefined);
+  assert.ok(await s.cache.getDetail(H, V, 'B'));
+});
+
+test('refresh skips object codes outside the allowlist', async () => {
+  const s = setup({ codes: ['A', '../x', 'B|C'] });
+  await s.sync.refresh(H, V);
+  assert.deepEqual([...s.calls].sort(), ['A']);
+});

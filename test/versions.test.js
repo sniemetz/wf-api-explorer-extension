@@ -68,3 +68,25 @@ test('metadataUrl builds list, detail and unsupported urls', () => {
   assert.equal(metadataUrl('https://h', '/v22.0', 'PROJ'), 'https://h/attask/api/v22.0/PROJ/metadata');
   assert.equal(metadataUrl('https://h', '-unsupported'), 'https://h/attask/api-unsupported/metadata');
 });
+
+test('parseVersionOptions drops values outside the allowlist', () => {
+  const bad = `<select ng-model="apiversion">
+<option value="/v22.0">ok</option>
+<option value="/../evil">bad</option>
+<option value="/v22.0?x=1">bad2</option>
+<option value="-unsupported">u</option></select>`;
+  assert.deepEqual(parseVersionOptions(bad).map((o) => o.value), ['/v22.0', '-unsupported']);
+});
+
+test('metadataUrl rejects an invalid version value or objCode', () => {
+  assert.throws(() => metadataUrl('https://h', '/../x'));
+  assert.throws(() => metadataUrl('https://h', '/v22.0', '../PROJ'));
+  assert.throws(() => metadataUrl('https://h', '/v22.0', 'PROJ/x'));
+});
+
+test('probeVersions stops after 10 probes even if every answer is 200', async () => {
+  let n = 0;
+  const hits = await probeVersions(FALLBACK_VERSIONS, async () => { n++; return { status: 200 }; }, 'https://h');
+  assert.equal(n, 10);
+  assert.equal(hits.length, 10);
+});
