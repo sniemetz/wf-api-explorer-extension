@@ -298,7 +298,7 @@ Notes:
 ### 6.6 Utilities
 
 - Keyboard: `/` focuses the search box.
-- Keep state: the last selected object and tab are restored when the popup opens (same version only).
+- Keep state: the last selected object, tab, and both search texts are restored when the popup opens (same version only).
 - In an expanded item, null attributes and `url` are hidden (`typeObjCode` is the link to the linked object).
 - Selecting an object scrolls it into view in the list. If the search filter hides it, the filter is cleared.
 

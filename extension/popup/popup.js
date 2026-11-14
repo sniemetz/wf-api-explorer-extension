@@ -34,7 +34,10 @@ function objectsFrom(entry) {
 }
 
 function saveView() {
-  chrome.storage.local.set({ view: { ver: state.ver, objCode: state.selected?.objCode ?? null, tab: state.tab } }).catch(() => {});
+  chrome.storage.local.set({ view: {
+    ver: state.ver, objCode: state.selected?.objCode ?? null, tab: state.tab,
+    objSearch: dom.objSearch.value, tabSearch: dom.tabSearch.value,
+  } }).catch(() => {});
 }
 
 function clearSelection() {
@@ -114,11 +117,12 @@ function revealSelected() {
   if (code && !filterObjects(state.objects, dom.objSearch.value).some((o) => o.objCode === code)) {
     dom.objSearch.value = '';
     renderList();
+    saveView();
   }
   dom.objList.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
 }
 
-async function selectObject(obj, { tab = 'fields' } = {}) {
+async function selectObject(obj, { tab = 'fields', tabSearch = '' } = {}) {
   const ver = state.ver;
   const token = ++state.detailToken;
   const current = () => token === state.detailToken && ver === state.ver;
@@ -126,8 +130,8 @@ async function selectObject(obj, { tab = 'fields' } = {}) {
   state.detail = null;
   state.tab = tab;
   state.expanded.clear();
+  dom.tabSearch.value = tabSearch;
   saveView();
-  dom.tabSearch.value = '';
   dom.items.replaceChildren();
   dom.items.scrollTop = 0;
   dom.hint.hidden = true;
@@ -211,10 +215,17 @@ async function init() {
   const { selectedVersion } = await chrome.storage.local.get('selectedVersion');
   state.ver = options.some((o) => o.value === selectedVersion) ? selectedVersion : highestVersion(options).value;
   fillVersions(options, state.ver);
-  await loadList(state.ver);
   const { view } = await chrome.storage.local.get('view');
-  const restore = view?.ver === state.ver && state.objects.find((o) => o.objCode === view.objCode);
-  if (restore) selectObject(restore, { tab: TABS.some((t) => t.key === view.tab) ? view.tab : 'fields' });
+  const sameVersion = view?.ver === state.ver;
+  if (sameVersion) dom.objSearch.value = view.objSearch ?? '';
+  await loadList(state.ver);
+  const restore = sameVersion && state.objects.find((o) => o.objCode === view.objCode);
+  if (restore) {
+    selectObject(restore, {
+      tab: TABS.some((t) => t.key === view.tab) ? view.tab : 'fields',
+      tabSearch: view.tabSearch ?? '',
+    });
+  }
 }
 
 dom.version.addEventListener('change', async () => {
@@ -222,11 +233,13 @@ dom.version.addEventListener('change', async () => {
   await chrome.storage.local.set({ selectedVersion: state.ver });
   clearSelection();
   dom.objSearch.value = '';
+  dom.tabSearch.value = '';
+  saveView();
   await loadList(state.ver);
 });
 
-dom.objSearch.addEventListener('input', debounce(renderList, 200));
-dom.tabSearch.addEventListener('input', debounce(renderItemsView, 200));
+dom.objSearch.addEventListener('input', debounce(() => { renderList(); saveView(); }, 200));
+dom.tabSearch.addEventListener('input', debounce(() => { renderItemsView(); saveView(); }, 200));
 
 dom.refresh.addEventListener('click', async () => {
   dom.refresh.disabled = true;
