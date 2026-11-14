@@ -73,7 +73,7 @@ function valueNode(key, value, resolveCode, onLink) {
     return el('button', { type: 'button', class: 'objlink', text: linkCode, onClick: () => onLink(linkCode) });
   }
   if (key === 'possibleValues' && Array.isArray(value)) {
-    return document.createTextNode(value.map((p) => `${p.label} (${p.value})`).join(', ') || '-');
+    return el('div', {}, ...value.map((p) => el('div', { text: `${p.label} (${p.value})` })));
   }
   if (key === 'arguments' && Array.isArray(value)) {
     return el('div', {}, ...value.map((a) => el('div', { text: `${a.name} (${a.type})` })));
