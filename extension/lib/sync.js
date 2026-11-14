@@ -14,10 +14,10 @@ export function createSync({ api, cache, now = Date.now }) {
       const job = queue.shift();
       running++;
       job.run()
-        .then(() => true, () => false)
-        .then((ok) => {
+        .then((value) => ({ ok: true, value }), () => ({ ok: false }))
+        .then((result) => {
           running--;
-          job.resolve(ok);
+          job.resolve(result);
           pump();
         });
     }
@@ -78,18 +78,21 @@ export function createSync({ api, cache, now = Date.now }) {
   }
 
   async function refresh(host, ver) {
-    const { entry } = await checkList(host, ver);
+    const { entry, changed: listChanged } = await checkList(host, ver);
     const codes = Object.values(entry.data.objects).map((o) => o.objCode).filter(isValidObjCode);
     const results = await Promise.all(
       codes.map((code) =>
         enqueue(code, async () => {
           const prev = await cache.getDetail(host, ver, code);
-          if (prev && prev.needsLogin) return;
-          await checkDetail(host, ver, code);
+          if (prev && prev.needsLogin) return false;
+          return (await checkDetail(host, ver, code)).changed;
         }),
       ),
     );
-    if (results.every(Boolean)) await cache.setLastRun(now());
+    const failed = results.filter((x) => !x.ok).length;
+    const changed = (listChanged ? 1 : 0) + results.filter((x) => x.ok && x.value).length;
+    if (!failed) await cache.setLastRun(now());
+    return { changed, failed, total: codes.length };
   }
 
   async function refreshIfStale(host, ver, maxAgeMs = HOUR_MS) {

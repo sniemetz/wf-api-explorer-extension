@@ -157,3 +157,34 @@ test('refresh skips object codes outside the allowlist', async () => {
   await s.sync.refresh(H, V);
   assert.deepEqual([...s.calls].sort(), ['A']);
 });
+
+test('refresh returns {changed, failed, total}: first run counts list + all details as changed', async () => {
+  const s = setup({ codes: ['A', 'B'] });
+  assert.deepEqual(await s.sync.refresh(H, V), { changed: 3, failed: 0, total: 2 });
+});
+
+test('refresh returns changed 0 on an unchanged second run', async () => {
+  const s = setup({ codes: ['A', 'B'] });
+  await s.sync.refresh(H, V);
+  assert.deepEqual(await s.sync.refresh(H, V), { changed: 0, failed: 0, total: 2 });
+});
+
+test('refresh counts one changed detail', async () => {
+  const s = setup({ codes: ['A', 'B'] });
+  await s.sync.refresh(H, V);
+  const orig = s.api.fetchDetail;
+  s.api.fetchDetail = async (h, v, code) => {
+    if (code !== 'A') return orig(h, v, code);
+    const text = JSON.stringify({ data: { objCode: 'A', extra: 1 } });
+    return { text, data: { objCode: 'A', extra: 1 } };
+  };
+  assert.deepEqual(await s.sync.refresh(H, V), { changed: 1, failed: 0, total: 2 });
+});
+
+test('refresh counts failures and skips needsLogin objects', async () => {
+  const s = setup({ codes: ['A', 'B', 'ACTLOG'], failCodes: ['A'] });
+  const r1 = await s.sync.refresh(H, V);
+  assert.equal(r1.failed, 1);
+  const r2 = await s.sync.refresh(H, V);
+  assert.deepEqual(r2, { changed: 0, failed: 1, total: 3 });
+});

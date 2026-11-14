@@ -248,14 +248,32 @@ dom.tabSearch.addEventListener('input', debounce(() => { renderItemsView(); save
 dom.objList.addEventListener('scroll', debounce(saveView, 200));
 dom.items.addEventListener('scroll', debounce(saveView, 200));
 
+function refreshNote({ changed, failed, total }) {
+  if (failed) return `Refresh incomplete: ${failed} of ${total} objects failed${changed ? `, ${changed} updated` : ''}`;
+  return changed ? `Updated ${changed} item${changed === 1 ? '' : 's'}` : 'Already up to date';
+}
+
 dom.refresh.addEventListener('click', async () => {
+  const ver = state.ver;
   dom.refresh.disabled = true;
+  dom.refresh.setAttribute('aria-busy', 'true');
+  dom.refresh.replaceChildren(Object.assign(document.createElement('span'), { className: 'spinner' }), 'Refreshing...');
+  setNote('');
   try {
-    await sync.refresh(HOST, state.ver);
-    await loadList(state.ver);
+    const result = await sync.refresh(HOST, ver);
+    if (ver !== state.ver) return;
+    const list = await cache.getList(HOST, ver);
+    if (list) applyList(list);
+    if (state.selected) {
+      const detail = await cache.getDetail(HOST, ver, state.selected.objCode);
+      if (detail && ver === state.ver) showDetail(state.selected, detail);
+    }
+    setNote(refreshNote(result));
   } catch {
-    setNote('Refresh failed');
+    if (ver === state.ver) setNote('Refresh failed: could not reach Workfront. Cached data kept.');
   } finally {
+    dom.refresh.textContent = 'Refresh';
+    dom.refresh.removeAttribute('aria-busy');
     dom.refresh.disabled = false;
   }
 });
