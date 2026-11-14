@@ -5,7 +5,7 @@ import { createSync } from '../lib/sync.js';
 import { loadVersions } from '../lib/bootstrap.js';
 import { highestVersion } from '../lib/versions.js';
 import { filterObjects, filterItems } from '../lib/filter.js';
-import { TABS, tabEntries, visibleAttrs, itemMeta, objCodeFromUrl } from '../lib/detail.js';
+import { TABS, tabEntries, visibleAttrs, itemMeta } from '../lib/detail.js';
 import { renderObjectList, showMessage, debounce, renderDetailHead, renderTabs, renderItems } from './render.js';
 
 const fetchFn = (url) => fetch(url);
@@ -80,7 +80,6 @@ function renderItemsView() {
     },
     visibleAttrs,
     itemMeta,
-    objCodeFromUrl,
   });
 }
 
@@ -109,6 +108,15 @@ function showDetail(obj, entry) {
   renderItemsView();
 }
 
+function revealSelected() {
+  const code = state.selected?.objCode;
+  if (code && !filterObjects(state.objects, dom.objSearch.value).some((o) => o.objCode === code)) {
+    dom.objSearch.value = '';
+    renderList();
+  }
+  dom.objList.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
+}
+
 async function selectObject(obj, { tab = 'fields' } = {}) {
   const ver = state.ver;
   const token = ++state.detailToken;
@@ -122,6 +130,7 @@ async function selectObject(obj, { tab = 'fields' } = {}) {
   dom.hint.hidden = true;
   dom.detail.hidden = false;
   renderList();
+  revealSelected();
 
   const cached = await cache.getDetail(HOST, ver, obj.objCode);
   if (!current()) return;

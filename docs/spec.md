@@ -299,7 +299,8 @@ Notes:
 
 - Keyboard: `/` focuses the search box.
 - Keep state: the last selected object and tab are restored when the popup opens (same version only).
-- In an expanded item, the `url` attribute is a link that opens the linked object in the explorer. Null attributes are hidden.
+- In an expanded item, null attributes and `url` are hidden (`typeObjCode` is the link to the linked object).
+- Selecting an object scrolls it into view in the list. If the search filter hides it, the filter is cleared.
 
 ## 7. Technical design
 
