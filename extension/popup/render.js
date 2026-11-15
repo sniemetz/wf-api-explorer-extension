@@ -52,9 +52,14 @@ export function renderObjectList(container, objects, selectedCode, onSelect) {
 const list = (v) => (Array.isArray(v) ? v.join(', ') : v == null ? '-' : String(v));
 
 // Muted API name; clicking copies it to the clipboard and briefly says so.
+// Only well-formed API identifiers reach the clipboard (names come from remote JSON; a name with
+// newlines or shell syntax could otherwise be pasted into a terminal). All live v22 names match.
+export const SAFE_NAME = /^[A-Za-z0-9_:.\-]{1,128}$/;
+
 export function copyName(text) {
   const btn = el('button', { type: 'button', class: 'copy', title: 'Click to copy', text });
   btn.addEventListener('click', async () => {
+    if (!SAFE_NAME.test(text)) return;
     try {
       await navigator.clipboard.writeText(text);
     } catch {
