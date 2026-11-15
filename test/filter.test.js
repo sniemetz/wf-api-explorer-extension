@@ -13,22 +13,27 @@ test('"proj" finds Project by label and code', () => {
   assert.deepEqual(filterObjects(OBJS, 'proj').map((o) => o.objCode), ['PROJ']);
 });
 
-test('label match is word-start, code match is substring', () => {
-  assert.deepEqual(filterObjects(OBJS, 'ask').map((o) => o.objCode), ['TASK']); // via code TASK
-  assert.deepEqual(filterObjects(OBJS, 'rtfo').map((o) => o.objCode), []);
+test('3+ characters match anywhere in the label or the API code', () => {
+  assert.deepEqual(filterObjects(OBJS, 'ask').map((o) => o.objCode), ['TASK']);
+  assert.deepEqual(filterObjects(OBJS, 'rtfo').map((o) => o.objCode), ['PORT']); // inside "Portfolio"
+  assert.deepEqual(filterObjects(OBJS, 'ORT').map((o) => o.objCode), ['PORT']);
 });
 
-test('a query matches the start of any word in the label', () => {
-  const objs = [
-    { label: 'Document Version', objCode: 'DOCV' },
-    { label: 'Stage Approver', objCode: 'STGAPR' },
-    { label: 'APIVersionMetadata', objCode: 'APIVMD' },
-  ];
-  assert.deepEqual(filterObjects(objs, 'ver').map((o) => o.objCode), ['DOCV']);
-  assert.deepEqual(filterObjects(objs, 'VERS').map((o) => o.objCode), ['DOCV']);
-  assert.deepEqual(filterObjects(objs, 'document ver').map((o) => o.objCode), ['DOCV']);
-  assert.deepEqual(filterObjects(objs, 'approver').map((o) => o.objCode), ['STGAPR']);
-  assert.deepEqual(filterObjects(objs, 'pprover').map((o) => o.objCode), []);
+const VER = [
+  { label: 'Document Version', objCode: 'DOCV' },
+  { label: 'Stage Approver', objCode: 'STGAPR' },
+  { label: 'Baseline', objCode: 'BASE' },
+];
+
+test('"ver" finds every label containing it, in any position', () => {
+  assert.deepEqual(filterObjects(VER, 'ver').map((o) => o.objCode), ['DOCV', 'STGAPR']);
+  assert.deepEqual(filterObjects(VER, 'document ver').map((o) => o.objCode), ['DOCV']);
+});
+
+test('1-2 characters match only the start of a label word (or inside the code)', () => {
+  assert.deepEqual(filterObjects(VER, 've').map((o) => o.objCode), ['DOCV']); // Version word + code
+  assert.deepEqual(filterObjects(VER, 'er').map((o) => o.objCode), []);
+  assert.deepEqual(filterObjects(VER, 'ap').map((o) => o.objCode), ['STGAPR']);
 });
 
 test('no match returns [] and empty query returns all', () => {
