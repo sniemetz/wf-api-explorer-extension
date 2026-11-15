@@ -1,8 +1,12 @@
+const words = (text) => text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+// Label: the query matches the start of any word ("ver" finds "Document Version"). Code: substring.
 export function filterObjects(objects, q) {
   const s = (q || '').trim().toLowerCase();
   if (!s) return objects;
+  const w = words(s);
   return objects.filter(
-    (o) => o.label.toLowerCase().startsWith(s) || o.objCode.toLowerCase().includes(s),
+    (o) => (w && ` ${words(o.label)}`.includes(` ${w}`)) || o.objCode.toLowerCase().includes(s),
   );
 }
 
