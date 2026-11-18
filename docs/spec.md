@@ -74,7 +74,7 @@ In scope (v1):
 - Object detail with 5 tabs (Fields, References, Collections, Search, Actions). The Queries tab is hidden for parity with the Explorer (decision 2026-11-14; reason: the user cannot verify that queries work).
 - Loading indicators and empty states (see section 6.7).
 - Two search boxes (object list and tab content).
-- Cache, change check on open, background prefetch, and hourly refresh.
+- Cache, change check on open, background prefetch, and a scheduled list check every 6 hours.
 - Links between objects.
 
 Out of scope (v1):
@@ -195,7 +195,7 @@ On extension load (install, and each browser start):
 2. Pick the highest version number. Set the dropdown to it.
 3. Fetch `/{version}/metadata`. Store the response in cache.
 4. Start the background prefetch of all object details (see below). It runs async. It does not block the UI.
-5. Create the hourly alarm (see below).
+5. Create the scheduled alarm (every 6 hours, see below).
 
 On every popup open (the popup checks the list once; it then asks the service worker to prefetch details from the cached list, so the list is not fetched twice):
 
@@ -215,24 +215,23 @@ On object click:
 Background prefetch:
 
 - Runs after the first list load. Fetches `/{version}/{OBJCODE}/metadata` for all objects in the list.
-- Concurrency: limited, for example 5 parallel calls. **Inference:** Adobe rate limits for this endpoint are unknown. 10 parallel calls worked without error in the 2026-11-14 test (8.2 s for all 174). Not tested for repeated runs.
+- Pace (decision 2026-11-18): background prefetch runs 2 requests in parallel and pauses 200 ms after each. A full prefetch of 174 objects takes about 44 s (measured: 3.9 requests per second). **Inference:** Adobe rate limits for this endpoint are unknown; 10 parallel calls without a pause worked in the 2026-11-14 test (8.2 s for all 174). A user-started Refresh stays fast (5 parallel, no pause, about 9 s) because the user asked for it and waits for it.
 - `ACTLOG` returns 401. Store a "needs login" marker, shown in the UI as "No data available". Do not retry it on every run.
 - A clicked object is fetched directly by the popup; it does not wait in the prefetch queue.
 
-Hourly refresh:
+Scheduled check (decision 2026-11-18: every 6 hours, was 60 minutes; the Refresh button covers on-demand updates):
 
-- Use `chrome.alarms`, period 60 minutes.
-- Each run: fetch the list. Fetch all object details. Compare hashes. Write to storage only when a hash changed.
-- If the browser was closed, alarms do not run. On browser start, run the refresh if the last run is older than 60 minutes.
-- Scope: the currently selected API version only (default: latest). Each run also re-reads the version options and runs the version probe (section 6.4).
-- When the user selects another version: run the same populate (list, then background prefetch of all details) for that version. Cache is keyed by version, so a version that was cached before shows at once and the check runs async.
-- The calls are fast (see section 2), so one version per run is cheap. Refreshing all cached versions is not needed.
-- Data per run: about 1.2 MB (see section 2).
+- Use `chrome.alarms`, period 360 minutes. The alarm is created first on every extension load.
+- Each run: fetch the list (one request) and compare the hash. Objects that are new in the list are prefetched at the background pace. Cached details are not re-fetched by the schedule.
+- Cached details update when the user opens an object (async hash check) and when the user presses Refresh (all details, fast pace).
+- If the browser was closed, alarms do not run. On browser start the extension load re-checks the list and prefetches what is missing.
+- Scope: the currently selected API version only. Version options are re-read on extension load and on manual Refresh; otherwise the cached options are used.
+- When the user selects another version: run the same populate (list, then background prefetch of missing details) for that version. Cache is keyed by version, so a version that was cached before shows at once and the check runs async.
 
 Notes:
 
 - The server sends `cache-control: no-store` and no `ETag`. A conditional request does not work. Every check downloads the full response (list: 29.8 KB, 4.4 KB with gzip).
-- An unchanged list does not prove that object details are unchanged. The list holds only `name`, `label`, `objCode`, `url`. A field change in `PROJ` would not change the list. For that reason details have their own check (on open, and hourly).
+- An unchanged list does not prove that object details are unchanged. The list holds only `name`, `label`, `objCode`, `url`. A field change in `PROJ` would not change the list. For that reason details have their own check (on open, and with the Refresh button).
 
 ### 6.3 Object detail
 
@@ -275,16 +274,16 @@ Notes:
   - The `<option>` elements are in the static HTML of the page (checked 2026-11-14). The page is an Angular template, but the options are not generated by script.
   - Needs host permission for `developersupport.workfront.com`.
   - Parse with `DOMParser` in the popup or an offscreen document. **Inference:** a service worker has no DOM, so `DOMParser` is not available there. Not tested. Alternative: regex on the `<option value="...">` text.
-  - Store the parsed options in cache. Re-parse on extension load and in the hourly refresh.
+  - Store the parsed options in cache. Re-parse on extension load and on manual Refresh.
   - Fallback if the fetch or the parse fails: use the last cached options. If there are none, use a hard-coded list (v15.0 to v22.0, API Unsupported).
 - "Latest" = highest version number after the version probe (below). Today this is v23.0.
   - **Known gap:** v23.0 is the current API version (user statement; not verified). The Explorer page does not list it yet. `/attask/api/v23.0/metadata` returns HTTP 200 (tested 2026-11-14). `v24.0` returns HTTP 400.
   - Version probe (decision, in v1): after parsing the options, request `/attask/api/v{highest+1}.0/metadata`. If the answer is HTTP 200, add that version to the dropdown with the label "API Version {n}.0". Repeat with the next number until the answer is not HTTP 200.
-  - Run the probe on extension load and in the hourly refresh. Cache the result.
+  - Run the probe on extension load and on manual Refresh. Cache the result.
   - Validation (decision 2026-11-14): every version in the dropdown (parsed or probed) must answer its `/metadata` call with HTTP 200. A version that answers anything else is removed from the dropdown. A network error keeps the option (it proves nothing). If no numeric version is left, keep the unvalidated list. If the page lists no numeric version, use the hard-coded list.
   - Reason: a version that the API serves is real, and the probe costs one small call. Today: v23.0 returns 200 and v24.0 returns 400.
   - When Adobe adds the version to the Explorer page, the parsed list and the probe agree. No update is needed.
-  - **Inference:** a probed version has no Adobe documentation. Its metadata can change without notice. The hourly refresh picks up changes.
+  - **Inference:** a probed version has no Adobe documentation. Its metadata can change without notice. A manual Refresh or the next extension load picks up changes.
 - "Unsupported" URL form (tested 2026-11-14): `https://api-cl01.my.workfront.com/attask/api-unsupported/metadata` returns HTTP 200.
 
 ### 6.5 Host setting
@@ -306,17 +305,17 @@ Notes:
 - Manifest V3.
 - Permissions: `storage`, `alarms`. Add `unlimitedStorage` if the quota is a problem (see Cache).
 - `host_permissions` (v1, narrow): `https://api-cl01.my.workfront.com/*`, `https://developersupport.workfront.com/*` (version options, section 6.4). v2 adds `https://*.my.workfront.com/*` (section 9.3).
-- Background: a service worker runs the prefetch and the hourly alarm.
+- Background: a service worker runs the prefetch and the scheduled list check.
   - **Inference:** Chrome can stop a service worker when it is idle. The alarm starts it again. A run of about 8 s is short. Not tested.
 - Fetch from the service worker or the extension page. With `host_permissions`, CORS does not block the call.
   - **Inference:** Based on Chrome extension rules. Not tested in a browser yet.
 - Cache: `chrome.storage.local`, key = host + version + objCode. Keep list and detail separately. `PROJ` detail is about 64 KB.
-- No cache expiry (decision 2026-11-14). The hourly refresh is the full check (list and all details, hash compare). A "Refresh" button forces the same run. It runs in the service worker, so closing the popup does not stop it; progress and result are kept in storage and shown the next time the popup opens. While it runs, the button shows a spinner and is disabled; the UI stays usable and the cache stays valid. When it ends, the list and the open object re-render and a note shows "Updated N items", "Already up to date", or "Refresh incomplete: N of M objects failed". A failed call never changes the cache. The list is also checked on every open (see section 6.2.1).
+- No cache expiry (decision 2026-11-14). The "Refresh" button runs the full check (list and all details, hash compare); the scheduled check covers only the list. It runs in the service worker, so closing the popup does not stop it; progress and result are kept in storage and shown the next time the popup opens. While it runs, the button shows a spinner and is disabled; the UI stays usable and the cache stays valid. When it ends, the list and the open object re-render and a note shows "Updated N items", "Already up to date", or "Refresh incomplete: N of M objects failed". A failed call never changes the cache. The list is also checked on every open (see section 6.2.1).
 - Cache strategy (answer to the fetch-speed question):
   - Measured: list 0.5 s. One detail 0.8 s. All 174 details 1.16 MB in 8.2 s (10 parallel calls).
   - Decision: prefetch all details in the background after the first list load (see section 6.2.1). Fetch on demand when the cache is empty for the requested object.
   - Size 1.16 MB is small for `chrome.storage.local` (quota 10 MB by default; **inference** from Chrome docs, check). Use `unlimitedStorage` if the quota is a problem.
-  - Change check for details: no `ETag`, so compare a hash per object. Check on open (async) and in the hourly refresh.
+  - Change check for details: no `ETag`, so compare a hash per object. Check on open (async) and with the Refresh button.
   - Scope of "once across browsers" (user intent: across all browser sessions, including incognito):
     - Normal windows: `chrome.storage.local` is shared by all windows and sessions of one Chrome profile. This meets the need.
     - Incognito: decision: allowed. The cache holds public schema data only, with no record data and no credentials, so shared storage is acceptable.
@@ -391,7 +390,8 @@ Status: dropped 2026-11-14 (user sees little value). Kept below for reference on
 - Change the version: the list and the cache switch to that version.
 - Open the popup right after install (empty cache): list loads in the foreground. A clicked object loads on demand.
 - Prefetch: after about 10 s all 174 details are in cache (`ACTLOG` as "No data available").
-- Hourly alarm: change a cached hash (test hook). After the run the detail is updated.
+- Scheduled alarm (6 hours): change the cached list hash (test hook). After the run the list is updated and new objects are prefetched.
+- Prefetch pace: with an empty cache, all 174 details arrive in about 45 s (2 parallel, 200 ms pause). A manual Refresh takes about 9 s.
 - Incognito (with "Allow in Incognito" on): the cache is available.
 - Click outside the popup: popup closes.
 - `PROJ` detail: 183 fields, 11 actions (as of 2026-11-11).

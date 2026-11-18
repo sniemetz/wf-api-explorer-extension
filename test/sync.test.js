@@ -51,8 +51,9 @@ function setup({ codes = ['A', 'B'], delay = 0, failCodes = [] } = {}) {
   const storage = fakeStorage();
   const cache = createCache(storage);
   const clock = { t: 1_000_000 };
-  const sync = createSync({ api, cache, now: () => clock.t });
-  return { api, cache, sync, calls, clock, maxRunning: () => maxRunning, storage };
+  const sleeps = [];
+  const sync = createSync({ api, cache, now: () => clock.t, sleep: async (ms) => { sleeps.push(ms); } });
+  return { api, cache, sync, calls, clock, sleeps, maxRunning: () => maxRunning, storage };
 }
 
 test('checkList unchanged hash does not rewrite the cache', async () => {
@@ -120,10 +121,10 @@ test('refresh sets lastRun and rewrites only changed details', async () => {
   assert.equal(writes, 0);
 });
 
-test('refreshIfStale: false at 59 min, true at 61 min', async () => {
+test('refreshIfStale: false just under 6 h, true just over', async () => {
   const s = setup({ codes: ['A'] });
   await s.cache.setLastRun(s.clock.t);
-  s.clock.t += 59 * 60_000;
+  s.clock.t += (6 * 60 - 1) * 60_000;
   assert.equal(await s.sync.refreshIfStale(H, V), false);
   s.clock.t += 2 * 60_000;
   assert.equal(await s.sync.refreshIfStale(H, V), true);
@@ -186,4 +187,29 @@ test('checkDetail ignores flag order and key order differences between fetches',
   assert.equal((await s.sync.checkDetail(H, V, 'A')).changed, true);
   s.api.fetchDetail = async () => ({ text: JSON.stringify({ data: b }), data: b });
   assert.equal((await s.sync.checkDetail(H, V, 'A')).changed, false);
+});
+
+test('prefetchAll with a gap sleeps between requests and respects the concurrency', async () => {
+  const codes = ['A', 'B', 'C', 'D', 'E', 'F'];
+  const s = setup({ codes, delay: 5 });
+  await s.sync.prefetchAll(H, V, codes, { concurrency: 2, gapMs: 200 });
+  assert.equal(s.calls.length, 6);
+  assert.ok(s.maxRunning() <= 2, `max ${s.maxRunning()}`);
+  assert.ok(s.sleeps.length >= 3 && s.sleeps.every((ms) => ms === 200), JSON.stringify(s.sleeps));
+});
+
+test('prefetchAll without a gap never sleeps', async () => {
+  const s = setup({ codes: ['A', 'B'] });
+  await s.sync.prefetchAll(H, V, ['A', 'B']);
+  assert.deepEqual(s.sleeps, []);
+});
+
+test('a manual refresh stays fast (5 parallel, no sleep) even after a paced prefetch', async () => {
+  const codes = Array.from({ length: 12 }, (_, i) => `O${i}`);
+  const s = setup({ codes, delay: 5 });
+  await s.sync.prefetchAll(H, V, ['O0'], { concurrency: 1, gapMs: 200 });
+  s.sleeps.length = 0;
+  await s.sync.refresh(H, V);
+  assert.ok(s.maxRunning() > 2, `max ${s.maxRunning()}`);
+  assert.deepEqual(s.sleeps, []);
 });

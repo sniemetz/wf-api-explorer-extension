@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { populate, prefetchFromCache, checkListAndPrefetch } from '../extension/lib/startup.js';
+import { BACKGROUND_PACE } from '../extension/lib/config.js';
 
 const H = 'https://h';
 const OPTIONS = [{ value: '/v21.0', label: 'API Version 21.0' }, { value: '/v22.0', label: 'API Version 22.0' }, { value: '/v23.0', label: 'API Version 23.0', probed: true }];
@@ -28,7 +29,7 @@ function deps({ checkListFails = false, selected } = {}) {
 test('populate creates the hourly alarm even when the list fetch fails', async () => {
   const d = deps({ checkListFails: true });
   await assert.rejects(populate(d.args));
-  assert.deepEqual(d.calls.alarms, [['refresh', { periodInMinutes: 60 }]]);
+  assert.deepEqual(d.calls.alarms, [['refresh', { periodInMinutes: 360 }]]);
 });
 
 test('populate selects the explorer default (not a probed version) and prefetches its objects', async () => {
@@ -85,4 +86,16 @@ test('checkListAndPrefetch checks the list once and prefetches only via prefetch
   };
   await checkListAndPrefetch({ host: H, version: '/v22.0', sync });
   assert.deepEqual(calls, ['list', ['prefetch', ['A']]]);
+});
+
+test('background prefetches use the gentle pace', async () => {
+  const paces = [];
+  const sync = {
+    checkList: async () => ({ entry: { data: { objects: { a: { objCode: 'A' } } } } }),
+    prefetchAll: async (h, v, codes, pace) => { paces.push(pace); },
+  };
+  await prefetchFromCache({ host: H, version: '/v22.0', cache: { getList: async () => undefined }, sync });
+  await checkListAndPrefetch({ host: H, version: '/v22.0', sync });
+  assert.deepEqual(paces, [BACKGROUND_PACE, BACKGROUND_PACE]);
+  assert.deepEqual(BACKGROUND_PACE, { concurrency: 2, gapMs: 200 });
 });

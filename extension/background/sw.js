@@ -27,7 +27,7 @@ const refreshJob = createRefreshJob({
 const populateNow = () =>
   populate({ host: HOST, getVersions: () => versions({ force: true }), storage: chrome.storage.local, sync, alarms: chrome.alarms });
 
-async function hourly() {
+async function scheduledCheck() {
   const options = await versions();
   const { selectedVersion } = await chrome.storage.local.get('selectedVersion');
   const ver = options.some((o) => o.value === selectedVersion) ? selectedVersion : defaultVersion(options).value;
@@ -43,7 +43,7 @@ chrome.runtime.onInstalled.addListener(() => { populateNow().catch(log('install'
 chrome.runtime.onStartup.addListener(() => { populateNow().catch(log('startup')); });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === ALARM) hourly().catch(log('hourly'));
+  if (alarm.name === ALARM) scheduledCheck().catch(log('scheduled check'));
 });
 
 // Popup asks for a prefetch when the user switches version (popup may close first).
