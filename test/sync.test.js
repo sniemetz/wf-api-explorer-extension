@@ -121,20 +121,6 @@ test('refresh sets lastRun and rewrites only changed details', async () => {
   assert.equal(writes, 0);
 });
 
-test('refreshIfStale: false just under 6 h, true just over', async () => {
-  const s = setup({ codes: ['A'] });
-  await s.cache.setLastRun(s.clock.t);
-  s.clock.t += (6 * 60 - 1) * 60_000;
-  assert.equal(await s.sync.refreshIfStale(H, V), false);
-  s.clock.t += 2 * 60_000;
-  assert.equal(await s.sync.refreshIfStale(H, V), true);
-});
-
-test('refreshIfStale runs when lastRun is missing', async () => {
-  const s = setup({ codes: ['A'] });
-  assert.equal(await s.sync.refreshIfStale(H, V), true);
-});
-
 test('refresh does not set lastRun when a detail fetch fails', async () => {
   const s = setup({ codes: ['A', 'B'], failCodes: ['A'] });
   await s.sync.refresh(H, V);

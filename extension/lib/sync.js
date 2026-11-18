@@ -2,8 +2,6 @@ import { sha256, stableStringify } from './hash.js';
 import { ApiError } from './api.js';
 import { isValidObjCode } from './versions.js';
 
-const STALE_MS = 6 * 3600000;
-
 // A 4xx answer means the object has no metadata for us. It is not a refresh failure.
 export const isNoData = (err) => err instanceof ApiError && err.status >= 400 && err.status < 500;
 
@@ -70,12 +68,5 @@ export function createSync({ api, cache, now = Date.now, sleep = defaultSleep })
     return { changed, failed, total: codes.length };
   }
 
-  async function refreshIfStale(host, ver, maxAgeMs = STALE_MS) {
-    const last = await cache.getLastRun();
-    if (last !== undefined && now() - last < maxAgeMs) return false;
-    await refresh(host, ver);
-    return true;
-  }
-
-  return { checkList, checkDetail, prefetchAll, refresh, refreshIfStale };
+  return { checkList, checkDetail, prefetchAll, refresh };
 }
