@@ -54,21 +54,16 @@ test('evictExcept drops list/detail entries of versions not offered, keeps the r
   await c.setDetail(H, '/v22.0', 'TASK', { n: 2 });
   await c.setDetail('https://other', '/v21.0', 'TASK', { n: 3 });
   await c.setVersions(H, { data: [] });
-  await c.setLastRun(5);
   assert.equal(await c.evictExcept(H, ['/v22.0']), 2);
   assert.equal(await c.getList(H, '/v21.0'), undefined);
   assert.equal(await c.getDetail(H, '/v21.0', 'TASK'), undefined);
   assert.ok(await c.getList(H, '/v22.0'));
   assert.ok(await c.getDetail('https://other', '/v21.0', 'TASK'));
   assert.ok(await c.getVersions(H));
-  assert.equal(await c.getLastRun(), 5);
 });
 
-test('versions and lastRun round trip', async () => {
+test('versions round trip', async () => {
   const c = createCache(fakeStorage());
-  assert.equal(await c.getLastRun(), undefined);
-  await c.setLastRun(123);
-  assert.equal(await c.getLastRun(), 123);
   const v = { hash: 'v', data: [{ value: '/v22.0', label: 'API Version 22.0' }], fetchedAt: 1 };
   await c.setVersions(H, v);
   assert.deepEqual(await c.getVersions(H), v);

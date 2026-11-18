@@ -108,10 +108,9 @@ test('prefetchAll continues after a failed object', async () => {
   assert.ok(await s.cache.getDetail(H, V, 'B'));
 });
 
-test('refresh sets lastRun and rewrites only changed details', async () => {
+test('refresh rewrites only changed details', async () => {
   const s = setup({ codes: ['A', 'B'] });
   await s.sync.refresh(H, V);
-  assert.equal(await s.cache.getLastRun(), 1_000_000);
   assert.ok(await s.cache.getDetail(H, V, 'A'));
   let writes = 0;
   const orig = s.cache.setDetail;
@@ -121,10 +120,11 @@ test('refresh sets lastRun and rewrites only changed details', async () => {
   assert.equal(writes, 0);
 });
 
-test('refresh does not set lastRun when a detail fetch fails', async () => {
+test('refresh keeps going after a failed object and reports it', async () => {
   const s = setup({ codes: ['A', 'B'], failCodes: ['A'] });
-  await s.sync.refresh(H, V);
-  assert.equal(await s.cache.getLastRun(), undefined);
+  const r = await s.sync.refresh(H, V);
+  assert.equal(r.failed, 1);
+  assert.equal(await s.cache.getDetail(H, V, 'A'), undefined);
   assert.ok(await s.cache.getDetail(H, V, 'B'));
 });
 

@@ -64,7 +64,6 @@ export function createSync({ api, cache, now = Date.now, sleep = defaultSleep })
     }, pace);
     const failed = results.filter((x) => !x.ok).length;
     const changed = (listChanged ? 1 : 0) + results.filter((x) => x.ok && x.value).length;
-    if (!failed) await cache.setLastRun(now());
     return { changed, failed, total: codes.length };
   }
 

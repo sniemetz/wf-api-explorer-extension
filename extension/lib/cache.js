@@ -1,7 +1,6 @@
 const listKey = (host, ver) => `list|${host}|${ver}`;
 const detailKey = (host, ver, code) => `detail|${host}|${ver}|${code}`;
 const versionsKey = (host) => `versions|${host}`;
-const LAST_RUN_KEY = 'lastRun';
 
 const SEP = '|';
 
@@ -26,7 +25,5 @@ export function createCache(area) {
       if (stale.length) await area.remove(stale);
       return stale.length;
     },
-    getLastRun: () => read(LAST_RUN_KEY),
-    setLastRun: (ts) => write(LAST_RUN_KEY, ts),
   };
 }
