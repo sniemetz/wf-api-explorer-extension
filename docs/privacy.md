@@ -1,8 +1,8 @@
 # Privacy Policy: Workfront API Explorer
 
-Effective date: 2026-11-14
+Effective date: 2026-11-18
 
-Workfront API Explorer is a Chrome extension that shows Workfront API object metadata (fields, references, collections, search, actions and queries).
+Workfront API Explorer is a Chrome extension that shows Workfront API object metadata (fields, references, collections, search and actions).
 
 ## What I collect
 Nothing. The extension does not collect, record or transmit any personal data or browsing data. It has no analytics, no tracking and no accounts. It does not read the pages you visit.

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Workfront API Explorer",
-  "version": "1.0.0",
-  "description": "Browse Workfront API object metadata (fields, references, collections, search, actions, queries).",
+  "version": "1.0.1",
+  "description": "Browse Workfront API object metadata (fields, references, collections, search, actions).",
   "permissions": ["storage", "alarms"],
   "host_permissions": [
     "https://api-cl01.my.workfront.com/*",
