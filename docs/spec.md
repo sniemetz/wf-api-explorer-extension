@@ -1,7 +1,7 @@
 # Workfront API Metadata Viewer - Chrome Extension Spec
 
-Status: Draft v0.5 (ready for build)
-Date: 2026-11-14
+Version: 1.0.1 (live in the Chrome Web Store)
+Date: 2026-11-18
 Target: Chrome (Manifest V3)
 
 ## 1. Goal
