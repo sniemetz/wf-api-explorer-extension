@@ -68,6 +68,7 @@ button.copy:hover { color: var(--fg); text-decoration: underline; }
 button.copy:hover:not(:disabled) { background: none; }
 .item .pretty { min-width: 0; overflow-wrap: anywhere; }
 .item .attrs { display: grid; grid-template-columns: max-content 1fr; gap: 1px 8px; margin: 0; padding: 2px 8px 6px 16px; font-size: 12px; }
+.item .attrs-empty { color: var(--muted); font-size: 12px; font-style: italic; padding: 2px 8px 6px 16px; }
 .item .attrs dt { color: var(--muted); }
 .item .attrs dd { margin: 0; overflow-wrap: anywhere; min-height: 1em; }
 button.objlink { color: var(--accent); cursor: pointer; text-decoration: underline; background: none; border: 0; padding: 0; }

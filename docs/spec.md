@@ -241,7 +241,7 @@ Notes:
 - Tab search box: filters the items in the active tab while typing (about 200 ms debounce). Match on item name and label. Clear the box when the user selects another object.
 - Show the item count on each tab, for example "Fields (183)". Optional. Not in the mockup.
 - Per item (collapsed): label left, API name right. Type and flags show only in the expanded view.
-- Expand an item to see all attributes, including `possibleValues`.
+- Expand an item to see all attributes, including `possibleValues`. If an item has no attribute to show (all null or empty), the expanded view says "No details in metadata".
 - Hide `label` in the expanded list (the Explorer does this).
 - `typeObjCode` is a link. A click opens that object.
 - Empty tab: show "No items" (the Explorer shows a blank text per section).

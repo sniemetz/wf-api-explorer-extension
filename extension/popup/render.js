@@ -115,9 +115,14 @@ export function renderItems(container, entries, { expanded, onToggle, resolveCod
         copyName(name)),
     );
     if (open) {
-      const dl = el('dl', { class: 'attrs' });
-      for (const [k, v] of visibleAttrs(attrs)) dl.append(el('dt', { text: `${k}:` }), el('dd', {}, valueNode(k, v, resolveCode, onLink)));
-      item.append(dl);
+      const shown = visibleAttrs(attrs);
+      if (!shown.length) {
+        item.append(el('div', { class: 'attrs-empty', text: 'No details in metadata' }));
+      } else {
+        const dl = el('dl', { class: 'attrs' });
+        for (const [k, v] of shown) dl.append(el('dt', { text: `${k}:` }), el('dd', {}, valueNode(k, v, resolveCode, onLink)));
+        item.append(dl);
+      }
     }
     return item;
   }));
